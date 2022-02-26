@@ -23,7 +23,7 @@ Some codes are experimental. Feel free to report issues and bugs.
 
 - `SphereMesh/`
    - __Main__: Mesh generator for pebble bed geometry.   
-   - __Usage__: [repo] A workflow contains MATLAB code and nek mesh smoother.   
+   - __Usage__: [private repo] A workflow contains MATLAB code and nek mesh smoother.   
    - __TODO__: WIP, to be released in future  
 
 

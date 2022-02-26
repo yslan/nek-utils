@@ -1,0 +1,9 @@
+[submodule "nek_tools"]
+	path = nek_connectivity
+	url = https://github.com/yslan/nek_tools
+[submodule "Tet2Hex_forNek"]
+	path = Tet2Hex_forNek
+	url = https://github.com/yslan/Tet2Hex_forNek
+[submodule "SphereMesh"]
+	path = SphereMesh
+	url = https://github.com/yslan/SphereMesh
