@@ -1,0 +1,185 @@
+c- CASE PARAMETERS------------------------------------------------------
+      include 'my_post.f'
+c-----------------------------------------------------------------------
+
+      subroutine uservp (ix,iy,iz,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      integer e,f,eg
+      e = gllel(eg)
+
+      udiff =1.0
+      utrans=1.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userf  (ix,iy,iz,iel)
+      include 'SIZE'
+      include 'TSTEP'
+c     include 'TOTAL'
+      include 'NEKUSE'
+      ffx = 0.0
+      ffy = 0.0
+      ffz = 0.0
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userq  (ix,iy,iz,iel)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      qvol   = 0.0
+      source = 0.0
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userchk
+      include 'SIZE'
+      include 'TOTAL'
+
+      integer icalld
+      save icalld
+      data icalld /0/
+
+      integer elist(lelt)
+      common /imy_fld/ elist
+      real ca,cb,cc,cd,tmp(lx1,ly1,lz1),tmp2(lx1,ly1,lz1),plmax,plm
+
+      ifto = .true.
+c      if (istep.eq.0.or.mod(istep,iostep).eq.0) 
+        call lambda2(t)   ! Put lambda2 into temperature field
+
+      n=nx1*ny1*nz1*nelt
+      umax = glamax(vx,n)
+      vmax = glamax(vy,n)
+      wmin = glmin(vz,n)
+      wmax = glmax(vz,n)
+      wmax = glmax(vz,n)
+      if (nid.eq.0) write(6,1) istep,time,umax,vmax,wmin,wmax
+    1 format(i9,1p5e12.4,' wmax')
+
+      if (icalld.eq.0) then
+        icalld=1
+
+        ntot=lx1*ly1*lz1*nelt
+        nxyz=lx1*ly1*lz1
+        tol=1.e-6
+        call izero(elist,lelt)
+
+        do ie=1,nelt
+
+          ! select bdry
+c          do iface=1,2*ldim
+c            if (cbc(iface,ie,1).ne.'E  '.AND.cbc(iface,ie,1).ne.'   ')
+c     $      elist(ie)=1
+c          enddo
+
+          ! select surface, ax+by+cz+d=0
+          ca=0.0
+          cb=1.0
+          cc=0.0
+          cd=0.0
+
+          call rzero(tmp,nxyz)
+          call add2s2(tmp,xm1(1,1,1,ie),ca,nxyz)
+          call add2s2(tmp,ym1(1,1,1,ie),cb,nxyz)
+          call add2s2(tmp,zm1(1,1,1,ie),cc,nxyz)
+          call cadd(tmp,cd,nxyz)
+
+          plmax=vlmax(tmp,nxyz)+tol
+          plmin=vlmin(tmp,nxyz)-tol
+
+          if (plmax*plmin.lt.0) elist(ie)=1
+
+
+c          ! select cylinder, x**2+y**2-R^2
+c          rad=53.0
+c          ca=1.0
+c          cb=1.0
+c          cc=0.0
+c          cd=-rad**2
+c          call rzero(tmp,nxyz)
+c          
+c          call copy(tmp2,xm1(1,1,1,ie),nxyz)
+c          call col2(tmp2,xm1(1,1,1,ie),nxyz)
+c          call add2s2(tmp,tmp2,ca,nxyz)
+c
+c          call copy(tmp2,ym1(1,1,1,ie),nxyz)
+c          call col2(tmp2,ym1(1,1,1,ie),nxyz)
+c          call add2s2(tmp,tmp2,cb,nxyz)
+c
+c          call copy(tmp2,zm1(1,1,1,ie),nxyz)
+c          call col2(tmp2,zm1(1,1,1,ie),nxyz)
+c          call add2s2(tmp,tmp2,cc,nxyz)
+c
+c          call cadd(tmp,cd,nxyz)
+c
+c          plmax=vlmax(tmp,nxyz)+tol
+c          plmin=vlmin(tmp,nxyz)-tol
+c
+c          if (plmax*plmin.lt.0) elist(ie)=1
+
+        enddo
+      endif
+
+        ifxyo=.true.
+        param(66)=6.0
+        call outpost(vx,vy,vz,pr,t,'def') ! Part. coordination
+c        param(66)=4.0
+c        call outpost(vx,vy,vz,pr,t,'lag') ! Part. coordination
+
+c      if (mod(istep,iostep).eq.0) then
+        p66=param(66)
+        param(66)=6.0
+c       call ione(elist,nelt)
+        call my_outpost(elist,vx,vy,vz,pr,t,'sel') ! Part. coordination
+        param(66)=p66
+c      endif
+
+      if(nid.eq.0)write(*,*)'my_dump complete'
+      call exitt
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userbc (ix,iy,iz,iside,ieg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      iel = gllel(ieg)
+      ux=0.0
+      uy=0.0
+      uz=1.0
+      temp=1.0
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine useric (ix,iy,iz,ieg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      iel = gllel(ieg)
+      UX=0.0
+      UY=0.0
+      UZ=1.0
+      TEMP=1.0
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat3
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat2
+      include 'SIZE'
+      include 'TOTAL'
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat
+      return
+      end
+c-----------------------------------------------------------------------
