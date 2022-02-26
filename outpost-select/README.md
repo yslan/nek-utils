@@ -10,15 +10,15 @@ In order to reduce the data size and the visualization cost, this example shows 
 This is a modified copy of the original Nek5000's `prepost.f`. 
 
 ## Usage
-1. Include 'my_post.f' in the user file.
-2. Set (integer) elist(ie)=1 for the elements you want to dump, otherwise, use 0.
-   You can define the geometric surface with Gamma(x,y,z) = 0 and determine if the elements intersect the object by finding the sign of the `max_e(Gamma)*min_e(Gamma)` in each elements.
+1. Include `my_post.f` in the user file.
+2. Set (integer) `elist(ie)=1` for the elements you want to dump, otherwise, use 0.    
+   You can define the geometric surface with `Gamma(x,y,z) = 0` and determine if the elements intersect the object by finding the sign of the `max_e(Gamma)*min_e(Gamma)` in each elements.
 3. `call my_outpost(elist,vx,vy,vz,pr,t,'sel')`. to dump Nek5000-format files.
 
 
 ## Features
 - Supports nek5000 outpot formats p66=0, 4, or 6
-- Supports nek5000 standard output 
+- Supports nek5000 standard fields (velocity, pressure, temperature and passive scalars) and the control (eg: `ifxyo` and `ifreguo`)
 - Tested with a 98M mesh (lx1=8).   
    ```
    original file: 98.7M elements, 1.3TB 
