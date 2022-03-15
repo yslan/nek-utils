@@ -1,8 +1,10 @@
 ### Cylinder in a box
 
 To construct/alter the mesh:
-  - adjust the box files 
-  - `./mkmsh` or `./mkmsh3d` (define the path to Nek5000 inside)
+  - adjust the box files (inside `mk_mesh/`)    
+    `ringbox1.box`: concentric circles   
+    `ringbox2.box`: circle in a 2d box
+  - `./mkmsh` or `./mkmsh3d` (define the path to Nek5000's tool inside)
 
 ### Interface:
 
