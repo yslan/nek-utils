@@ -98,8 +98,13 @@ c-----------------------------------------------------------------------
       include 'SIZE'
       include 'TOTAL'
 
-      call outpost(vx,vy,vz,pr,t,'aft')
-      call exitt
+      ! various output
+      ifxyo = .true.
+      call outpost(vx,vy,vz,pr,t,'aft') ! store mesh into file at current lx1
+
+c     call gen_rea(1) ! dump rea file   ! store mesh into rea
+c     call gen_re2(1) ! dump re2 file   ! store mesh into re2
+      call exitt0
 
       return
       end
@@ -121,13 +126,15 @@ c-----------------------------------------------------------------------
       real tmp(lx1,ly1,lz1,lelv),ginfo(2)
 
       integer fopp(6),ix_fctr(6),iy_fctr(6),iz_fctr(6),idd
-      integer f_to_eid_3d(4,6)
-      parameter(idd=ldim-1)
+     $      , f_to_eid_3d(4,6)
+
       data fopp /3,4,1,2,6,5/
 
+      parameter(idd=ldim-1)
       data ix_fctr /  2,lx1,  2,  1,  2,  2/
       data iy_fctr /  1,  2,ly1,  2,  2,  2/
       data iz_fctr /idd,idd,idd,idd,  1,lz1/
+
 
       data f_to_eid_3d / 1, 6, 9, 5,
      $                   2, 7,10, 6,
@@ -137,8 +144,7 @@ c-----------------------------------------------------------------------
      $                   9,10,11,12 /
 
       integer e,f,ix,iy,iz,i,n,iside,ilv
-      integer iix,iiy,iiz
-      integer kx1,kx2,ky1,ky2,kz1,kz2
+      integer iix,iiy,iiz,kx1,kx2,ky1,ky2,kz1,kz2
       real rad,xx,yy,xref,yref,dist2d,radmn,radmx
 
       if (lx1.lt.3) then
@@ -152,6 +158,7 @@ c-----------------------------------------------------------------------
       n = lx1*ly1*lz1*nelv
       call rzero(tmp,n)
 
+      ! tag bdry face and it's oppsite face
       do e=1,nelv
       do f=1,2*ldim
         if (cbc(f,e,1).eq.cbc3) then
@@ -162,6 +169,7 @@ c-----------------------------------------------------------------------
       enddo
       call dssum(tmp,lx1,ly1,lz1)
 
+      ! propogate inwards layers by layers 
       do ilv=2,nlyr
         do e=1,nelv
         do f=1,2*ldim
@@ -188,7 +196,7 @@ c-----------------------------------------------------------------------
           ! get rad
           radmn= 1.E10
           radmx=-1.E10
-          call facind (kx1,kx2,ky1,ky2,kz1,kz2,2,2,2,f)
+          call facind (kx1,kx2,ky1,ky2,kz1,kz2,2,2,2,f) ! get vertex from this f
           do 100 iz=kz1,kz2
           do 100 iy=ky1,ky2
           do 100 ix=kx1,kx2
@@ -205,13 +213,13 @@ c-----------------------------------------------------------------------
      $      write(*,*)'cyl diff rad is large',lglel(e),f,radmn,radmx
 
           rad = 0.5*(radmn+radmx)
+          if(f.eq.4.OR.f.eq.8) rad = -rad   ! This is so wierd...
+
           if (ldim.eq.2) then
-            if(f.eq.4) rad = -rad
             iside = f
             ccurve(iside,e) = 'C'
             curve(1,iside,e) = rad
           else
-            if(f.eq.4.OR.f.eq.8) rad = -rad   ! Nek is so wierd...
             do i=1,4
               iside = f_to_eid_3d(i,f)
               ccurve(iside,e) = 'C'
