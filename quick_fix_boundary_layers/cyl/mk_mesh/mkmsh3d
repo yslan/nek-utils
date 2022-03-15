@@ -1,0 +1,75 @@
+#!/bin/bash
+
+# Set Nek tools path
+genbox="/Disk_H/Nek5000/bin/genbox"
+genmap="/Disk_H/Nek5000/bin/genmap"
+pretex="/Disk_H/Nek5000/bin/pretex"
+n2to3="/Disk_H/Nek5000/bin/n2to3"
+
+# dependensies:
+#  ringbox1.box
+#  ringbox2.box
+#  cyl2d.rea # dummy rea
+#  clean.sh # just clear all tmp files
+
+# generate inner ring
+$genbox << EOF
+ringbox1.box
+EOF
+cp box.rea box1.rea
+
+# generate outer cylbox
+$genbox << EOF
+ringbox2.box
+EOF
+cp box.rea box2.rea
+
+# combine mesh
+$pretex << EOF
+combine
+1
+box1
+1
+
+10
+box2
+n
+1
+1
+1
+1
+1
+EOF
+
+$n2to3 << EOF
+combine
+0     # ascii
+5
+0.0
+5.0
+1
+no
+v  
+O  
+EOF
+
+# Get linear mesh by removing all curved sides
+cp combine3d.rea combine3d_l.rea
+
+str=`grep "Curved sides" combine3d_l.rea`
+ncv=`echo $str | awk '{print $1}'`
+str2=`echo $str | awk '{for(i=2;i<=NF-1;i++) printf $i" "; print ""}'`
+str3="    0  "$str2
+
+sed -i "/Curved sides/c\\$str3\nXXXXX" combine3d_l.rea
+sed -i '/XXXXX/,+'$ncv'd' combine3d_l.rea
+
+# genmap
+$genmap <<EOF
+combine3d_l
+
+EOF
+
+
+# maybe commet this out for dbg 
+./clean.sh
