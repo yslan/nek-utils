@@ -1,0 +1,134 @@
+c- CASE PARAMETERS------------------------------------------------------
+      include 'my_post.f'
+c-----------------------------------------------------------------------
+
+      subroutine uservp (ix,iy,iz,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      integer e,f,eg
+      e = gllel(eg)
+
+      udiff =1.0
+      utrans=1.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userf  (ix,iy,iz,iel)
+      include 'SIZE'
+      include 'TSTEP'
+c     include 'TOTAL'
+      include 'NEKUSE'
+      ffx = 0.0
+      ffy = 0.0
+      ffz = 0.0
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userq  (ix,iy,iz,iel)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      qvol   = 0.0
+      source = 0.0
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userchk
+      include 'SIZE'
+      include 'TOTAL'
+
+      integer elist(lelt),e
+      common /imy_fld/ elist
+
+      ifto = .true.
+      ifxyo= .true.
+
+      ntot = lx1*ly1*lz1*nelt
+      nxyz = lx1*ly1*lz1
+
+      p66=param(66)
+      param(66)=6.0
+
+
+      ! Assume that CFL is computed in advance and store in cflf (declared in SOLN)
+      ! Note, the CFL might be lagged 1 timesteps (TODO: need verify)
+      ! Here, we compute redundently with the collowing subroutine
+      call compute_cfl(umax,vx,vy,vz,1.0)
+      cfl_max = dt*umax
+      if(nio.eq.0)write(*,*)'cflmax',istep,cfl_max,umax,dt
+
+
+      ! dump E having CFL >= 2
+      call izero(elist,lelt)
+
+      do e=1,nelt
+        cfl_e = vlmax(cflf(1,1,1,e),nxyz)*dt
+        if (cfl_e.ge.2.0) elist(e) = 1
+      enddo
+      call my_outpost(elist,vx,vy,vz,pr,cflf,'cf1')
+
+
+      ! dump E having largest CFL
+      tol=1.e-6
+      cfl_max = glmax(cflf,ntot)*dt
+      call izero(elist,lelt)
+
+      do e=1,nelt
+        cfl_e = vlmax(cflf(1,1,1,e),nxyz)*dt
+        if (cfl_e.gt.cfl_max-tol) elist(e) = 1
+      enddo
+      call my_outpost(elist,vx,vy,vz,pr,cflf,'cf2')
+
+
+      param(66)=p66
+
+
+
+
+
+
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userbc (ix,iy,iz,iside,ieg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      iel = gllel(ieg)
+      ux=0.0
+      uy=0.0
+      uz=1.0
+      temp=1.0
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine useric (ix,iy,iz,ieg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      iel = gllel(ieg)
+      UX=0.0
+      UY=0.0
+      UZ=1.0
+      TEMP=1.0
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat3
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat2
+      include 'SIZE'
+      include 'TOTAL'
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat
+      return
+      end
+c-----------------------------------------------------------------------

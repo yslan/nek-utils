@@ -27,9 +27,12 @@ This is a modified copy of the original Nek5000's `prepost.f`.
 
 ## Examples
 
-- hemi   
+- `hemi`    
    - Nek5000's hemi examples, read from a file for non-trivial fields   
    - only dump the elements cross `y=0` plane   
+
+- `hemi_cfl`      
+   - an example to dump the high CFL elements
 
 - 350k pebbles    
    - The userchk and the related functions are posted below  
