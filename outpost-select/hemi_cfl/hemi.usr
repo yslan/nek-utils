@@ -55,9 +55,11 @@ c-----------------------------------------------------------------------
       ! Assume that CFL is computed in advance and store in cflf (declared in SOLN)
       ! Note, the CFL might be lagged 1 timesteps (TODO: need verify)
       ! Here, we compute redundently with the collowing subroutine
-      call compute_cfl(umax,vx,vy,vz,1.0)
-      cfl_max = dt*umax
-      if(nio.eq.0)write(*,*)'cflmax',istep,cfl_max,umax,dt
+      ! Also, note that cflf is computed based on dt=1.0 by default
+
+c      call compute_cfl(umax,vx,vy,vz,1.0) ! based on  dt=1.0
+c      cfl_max = dt*umax
+
 
 
       ! dump E having CFL >= 2
@@ -73,6 +75,8 @@ c-----------------------------------------------------------------------
       ! dump E having largest CFL
       tol=1.e-6
       cfl_max = glmax(cflf,ntot)*dt
+      if(nio.eq.0)write(*,*)'cflmax',istep,cfl_max,dt
+
       call izero(elist,lelt)
 
       do e=1,nelt
