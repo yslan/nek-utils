@@ -1,0 +1,400 @@
+c-----------------------------------------------------------------------
+      subroutine uservp(i,j,k,eg) ! set variable properties
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer i,j,k,e,eg
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userf(i,j,k,eg) ! set acceleration term
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer i,j,k,e,eg
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userq(i,j,k,eg) ! set source term
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer i,j,k,e,eg
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userbc(i,j,k,f,eg) ! set up boundary conditions
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer i,j,k,f,e,eg
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine useric (ix,iy,iz,ieg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat   ! This routine to modify element vertices
+      include 'SIZE'
+      include 'TOTAL'
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat3
+      include 'SIZE'
+      include 'TOTAL'
+
+      common /scrach_o1/
+     & w1(lx1*ly1*lz1*lelv)
+     &,w2(lx1*ly1*lz1*lelv)
+     &,w3(lx1*ly1*lz1*lelv)
+     &,w4(lx1*ly1*lz1*lelv)
+     &,w5(lx1*ly1*lz1*lelv)
+
+      common /scrach_o2/
+     & ywd(lx1,ly1,lz1,lelv)
+
+      COMMON /NRSSCPTR/ nrs_scptr(1)
+      integer*8         nrs_scptr
+
+      call distf(ywd,1,'W  ',w1,w2,w3,w4,w5)
+
+      nrs_scptr(1) = loc(ywd)
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat2
+      include 'SIZE'
+      include 'TOTAL'
+      integer e,f
+      real ginfo(2)
+
+      n = lx1*ly1*lz1*nelv
+      nxz = nx1*nz1
+      nface = 2*ldim
+
+      do iel=1,nelv
+      do ifc=1,2*ndim
+         if (boundaryID(ifc,iel).eq.1) cbc(ifc,iel,1)= 'v  ' ! inlet
+         if (boundaryID(ifc,iel).eq.2) cbc(ifc,iel,1)= 'o  ' ! outlet
+         if (boundaryID(ifc,iel).eq.3) cbc(ifc,iel,1)= 'v  ' ! hexagonal ducts
+         if (boundaryID(ifc,iel).eq.4) cbc(ifc,iel,1)= 'W  ' ! outer cylinder surface 
+      enddo
+      enddo
+
+      ifxyo = .true.
+      call outpost(vx,vy,vz,pr,t,'bfr')
+
+      Nelyr = 1   ! numbers of the layers from bdry
+      itype = 1  ! 1=cylinder, -1=cylinder hole
+
+      ! assume cylinder parallel to z axis
+      ginfo(1) = 0.0 ! cyl center: x coord
+      ginfo(2) = 0.0 ! cyl center: y coord
+
+      call fix_bdry('W  ',itype,ginfo,Nelyr) ! boundary layers on 'W  ' bdry
+
+      call outpost(vx,vy,vz,pr,t,'aft')
+      call exitt
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userchk
+      include 'SIZE'
+      include 'TOTAL'
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine fix_bdry(cbc3,itype,ginfo,Nelyr)
+c     itype:
+c        1 = cylinder
+c       -1 = cylinder hole
+      implicit none
+      include 'SIZE'
+      include 'TOTAL'
+      character*3 cbc3
+      integer Nelyr,itype
+
+      real tmp(lx1,ly1,lz1,lelv),ginfo(2)
+      real tmp2(lx1,ly1,lz1,lelv) ! for dbg plot only
+      integer elyr(lx1,ly1,lz1,lelv),enow
+      integer flyr(lx1,ly1,lz1,lelv),fnow
+
+      integer fopp(6),ix_fctr(6),iy_fctr(6),iz_fctr(6),idd
+     $      , f_to_eid_3d(2,6)
+
+      data fopp /3,4,1,2,6,5/
+
+      parameter(idd=ldim-1)
+      data ix_fctr /  2,lx1,  2,  1,  2,  2/
+      data iy_fctr /  1,  2,ly1,  2,  2,  2/
+      data iz_fctr /idd,idd,idd,idd,  1,lz1/
+
+      data f_to_eid_3d / 1, 5,
+     $                   2, 6,
+     $                   3, 7,
+     $                   4, 8,
+     $                   0, 0,
+     $                   0, 0/
+
+      integer e,f,ix,iy,iz,i,n,iside,ielv,iflv
+      integer iix,iiy,iiz,kx1,kx2,ky1,ky2,kz1,kz2
+      real rad,rad0,xx,yy,xref,yref,dist2d,radmn,radmx
+      real glmin,glmax,max_mult
+
+      if (lx1.lt.3) then
+        if(nio.eq.0) write(*,*)'WARN: fix_bdry needs lx1>=3'
+        return
+      endif
+      if (abs(itype).ne.1) 
+     $  call exitti('Err: only support cyl for now$',itype)
+
+      xref = ginfo(1) 
+      yref = ginfo(2)
+
+      n = lx1*ly1*lz1*nelv
+
+      ! get max multiplicity
+      call cfill(tmp,1.0,n)
+      call dssum(tmp,lx1,ly1,lz1)
+      max_mult = glmax(tmp,n)
+
+      call rzero(tmp,n)
+      call izero(elyr,n) ! record level of thie grid points
+      call izero(flyr,n) ! record level of thie grid points
+
+      ! tag bdry face and it's oppsite face
+      do e=1,nelv
+      do f=1,2*ldim
+        if (cbc(f,e,1).eq.cbc3) then
+          call facev(tmp,e,f,1.0,lx1,ly1,lz1)
+          call facev(tmp,e,fopp(f),max_mult*10.0,lx1,ly1,lz1)
+        endif
+      enddo
+      enddo
+      do i=1,n
+        if (tmp(i,1,1,1).gt.0) elyr(i,1,1,1) = 1 
+      enddo
+
+      call dssum(tmp,lx1,ly1,lz1)
+      do i=1,n
+        if (tmp(i,1,1,1).gt.max_mult*5.0) then ! first layer face
+          flyr(i,1,1,1) = 2
+        elseif (tmp(i,1,1,1).gt.0.) then ! boundary face
+          flyr(i,1,1,1) = 1
+        endif
+      enddo
+
+      ! propogate inwards layers by layers
+      enow = 1
+      fnow = 2
+      do ielv=2,Nelyr
+        enow = enow + 1
+        fnow = fnow + 1
+        do e=1,nelv
+        do f=1,2*ldim
+          ix = ix_fctr(f)
+          iy = iy_fctr(f)
+          iz = iz_fctr(f)
+          if (tmp(ix,iy,iz,e).gt.0.0) then
+            call facev(tmp,e,f,1.0,lx1,ly1,lz1)
+            call facev(tmp,e,fopp(f),1.0,lx1,ly1,lz1)
+          endif
+        enddo
+        enddo
+
+        do i=1,n
+          if (tmp(i,1,1,1).gt.0.AND.elyr(i,1,1,1).eq.0) then ! only assign new layers
+            elyr(i,1,1,1) = enow
+          endif
+        enddo
+        
+        call dssum(tmp,lx1,ly1,lz1)
+        do i=1,n
+          if (tmp(i,1,1,1).gt.0.AND.flyr(i,1,1,1).eq.0) then ! only assign new layers
+            flyr(i,1,1,1) = fnow
+          endif
+        enddo
+      enddo
+      enow = enow + 1
+      do i=1,n
+        if (tmp(i,1,1,1).gt.0.AND.elyr(i,1,1,1).eq.0) then ! only assign new layers
+          elyr(i,1,1,1) = enow
+        endif
+      enddo
+
+
+      ! assign cyl 
+      do iflv=1,Nelyr+1
+        ! get rad, go through all points in this layer
+        radmn= 1.E10
+        radmx=-1.E10
+
+        do e=1,nelv
+        do f=1,2*ldim
+          ix = ix_fctr(f)
+          iy = iy_fctr(f)
+          iz = iz_fctr(f)
+          if (flyr(ix,iy,iz,e).eq.iflv) then ! do this f
+
+            call facind (kx1,kx2,ky1,ky2,kz1,kz2,2,2,2,f) ! get vertex from this f
+            do iz=kz1,kz2
+            do iy=ky1,ky2
+            do ix=kx1,kx2
+              iix = (ix-1)*(lx1-1)+1
+              iiy = (iy-1)*(ly1-1)+1
+              iiz = (iz-1)*(lz1-1)+1
+              xx = xm1(iix,iiy,iiz,e)
+              yy = ym1(iix,iiy,iiz,e)
+              rad = dist2d(xx,yy,xref,yref)
+              radmn=min(radmn,rad)
+              radmx=max(radmx,rad)
+            enddo
+            enddo
+            enddo
+          endif ! f is selected
+        enddo ! f
+        enddo ! e
+
+        radmn = glmin(radmn,1)
+        radmx = glmax(radmx,1)
+        if(radmx-radmn.gt.1e-3)
+     $    write(*,*)'cyl diff rad is large',iflv,lglel(e),f,radmn,radmx
+
+        rad0 = 0.5*(radmn+radmx)
+        rad0 = radmx ! for April's case only, TODO: interface
+
+        do e=1,nelv
+        do f=1,2*ldim
+          ix = ix_fctr(f)
+          iy = iy_fctr(f)
+          iz = iz_fctr(f)
+          if (flyr(ix,iy,iz,e).eq.iflv) then ! do this f
+
+            call facind (kx1,kx2,ky1,ky2,kz1,kz2,2,2,2,f) ! get vertex from this f
+            do iz=kz1,kz2
+            do iy=ky1,ky2
+            do ix=kx1,kx2
+              iix = (ix-1)*(lx1-1)+1
+              iiy = (iy-1)*(ly1-1)+1
+              iiz = (iz-1)*(lz1-1)+1
+              xx = xm1(iix,iiy,iiz,e)
+              yy = ym1(iix,iiy,iiz,e)
+              rad = dist2d(xx,yy,xref,yref)
+              
+              xm1(iix,iiy,iiz,e) = xx * rad0 / rad
+              ym1(iix,iiy,iiz,e) = yy * rad0 / rad
+              radmn=min(radmn,rad)
+              radmx=max(radmx,rad)
+            enddo
+            enddo
+            enddo
+          endif ! f is selected
+        enddo ! f
+        enddo ! e
+
+        if (itype.lt.0) rad0 = -rad0 ! initial convex/concave
+
+        ! apply rad BC
+        do e=1,nelv
+        do f=1,2*ldim
+          ix = ix_fctr(f)
+          iy = iy_fctr(f)
+          iz = iz_fctr(f)
+
+          enow = elyr(ix,iy,iz,e)
+          fnow = flyr(ix,iy,iz,e)
+          if (fnow.eq.iflv) then ! do this f
+
+            rad = rad0
+            if (enow.ne.fnow) rad = -rad0 ! opp face convex/concave
+
+            if (ldim.eq.2) then
+              iside = f
+              ccurve(iside,e) = 'C'
+              curve(1,iside,e) = rad
+            else
+              do i=1,2
+                iside = f_to_eid_3d(i,f)
+                if (iside.eq.0) 
+     $            call exitti('Nek only supports cyl Z=const$',f)
+                ccurve(iside,e) = 'C'
+                curve(1,iside,e) = rad
+              enddo
+            endif
+
+          endif ! f is selected
+        enddo ! f
+        enddo ! e
+      enddo ! ilv
+
+      call xm1toxc 
+      call genxyz (xm1,ym1,zm1,lx1,ly1,lz1) ! this reads XC
+
+      do i=1,n
+        tmp (i,1,1,1) = real(elyr(i,1,1,1))
+        tmp2(i,1,1,1) = real(flyr(i,1,1,1))
+      enddo
+      call outpost(tmp,tmp2,vz,pr,t,'dbg')
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine xm1toxc  ! xc: vertices
+      implicit none
+      include 'SIZE' ! nelv
+      include 'GEOM' ! xm1
+      include 'INPUT'! xc
+      integer ie,nel
+
+      nel=nelv
+      do ie=1,nel
+        xc(1,ie) = XM1(1  ,1  ,1  ,ie)
+        xc(2,ie) = XM1(lx1,1  ,1  ,ie)
+        xc(3,ie) = XM1(lx1,ly1,1  ,ie)
+        xc(4,ie) = XM1(1  ,ly1,1  ,ie)
+        xc(5,ie) = XM1(1  ,1  ,lz1,ie)
+        xc(6,ie) = XM1(lx1,1  ,lz1,ie)
+        xc(7,ie) = XM1(lx1,ly1,lz1,ie)
+        xc(8,ie) = XM1(1  ,ly1,lz1,ie)
+        ! y
+        yc(1,ie) = YM1(1  ,1  ,1  ,ie)
+        yc(2,ie) = YM1(lx1,1  ,1  ,ie)
+        yc(3,ie) = YM1(lx1,ly1,1  ,ie)
+        yc(4,ie) = YM1(1  ,ly1,1  ,ie)
+        yc(5,ie) = YM1(1  ,1  ,lz1,ie)
+        yc(6,ie) = YM1(lx1,1  ,lz1,ie)
+        yc(7,ie) = YM1(lx1,ly1,lz1,ie)
+        yc(8,ie) = YM1(1  ,ly1,lz1,ie)
+        ! z 
+        if(ldim.eq.3) then
+          zc(1,ie) = ZM1(1  ,1  ,1  ,ie)
+          zc(2,ie) = ZM1(lx1,1  ,1  ,ie)
+          zc(3,ie) = ZM1(lx1,ly1,1  ,ie)
+          zc(4,ie) = ZM1(1  ,ly1,1  ,ie)
+          zc(5,ie) = ZM1(1  ,1  ,lz1,ie)
+          zc(6,ie) = ZM1(lx1,1  ,lz1,ie)
+          zc(7,ie) = ZM1(lx1,ly1,lz1,ie)
+          zc(8,ie) = ZM1(1  ,ly1,lz1,ie)
+        endif
+      enddo
+
+      return
+      end
