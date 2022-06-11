@@ -32,6 +32,16 @@ Some codes are experimental. Feel free to report issues and bugs.
    - __Usage__: MATLAB code that generates nek meshes.
    - __TODO__: Add new features as a small subset of SphereMesh      
 
+- `quick_fix_boundary_layers/`
+  - __Main__:  fix the boundary layers for cylinder geometry   
+  - __Usage__: independent file included from a nek user file. 
+  - __TODO__: clean up, add general geometry
+ 
+
+- `del_elements/`
+  - __Main__: delete selected elements from mesh in nek
+  - __Usage__: independent file included from a nek user file. 
+  - __TODO__: ad feature like BC tracing
 
 ## TODO:
 - mesh smoother   
