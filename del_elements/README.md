@@ -33,7 +33,7 @@ User tags come elements, we delete them and dump a new re2 (and co2) file.
 
     You might want to use different imid in case some curved information is lost.      
 
-- Once it's finished, it will generate the newre2fin.re2 and also dump field file    
+- Once it's finished, it will generate the newre2.re2 and also dump field file    
 
 - Notes:
   - run in parallel (only tested with small case)     
@@ -85,4 +85,6 @@ User tags come elements, we delete them and dump a new re2 (and co2) file.
    That one is probably not runnable with Nek5000.    
    However, it will help you understand how bID_new works.      
 
-
+   figs: Left part of the domain (with white elements outline) are the mesh after removing the skin layer on the Wall.   
+   |![](./hemi/demo1_f1.png)|![](./hemi/demo1_f2.png)|
+   |:---:|:---:|
