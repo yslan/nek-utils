@@ -38,7 +38,7 @@ User tags come elements, we delete them and dump a new re2 (and co2) file.
 - Notes:
   - run in parallel (only tested with small case)     
   - not supports DPROMAP
-  - no support periodic       
+  - no support deleting the element having periodic       
   - requires lx1>2
   - Also copy solutions (vx,vy,vz,pr,t) to the new mesh     
   - The global elements is re-assigned but a restart file is dumped.       
