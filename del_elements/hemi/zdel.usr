@@ -1,0 +1,277 @@
+c- CASE PARAMETERS------------------------------------------------------
+      include 'delete_el.f' 
+c      include 'my_errchk.f' ! del_dump_mesh, my_cbc_chk
+c      include 'my_post.f'
+c-----------------------------------------------------------------------
+
+      subroutine uservp (ix,iy,iz,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      integer e,f,eg
+      e = gllel(eg)
+
+      udiff =1.0
+      utrans=1.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userf  (ix,iy,iz,iel)
+      include 'SIZE'
+      include 'TSTEP'
+c     include 'TOTAL'
+      include 'NEKUSE'
+      ffx = 0.0
+      ffy = 0.0
+      ffz = 0.0
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userq  (ix,iy,iz,iel)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      qvol   = 0.0
+      source = 0.0
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userchk 
+      implicit none
+      include 'SIZE'
+      include 'TOTAL'
+
+      integer elist(lelt),new_bID,nelgv0,nxyz,i,e,f,imid
+      logical ifbinary
+
+      real ca,cb,cc,cd,tmp(lx1,ly1,lz1),plmax,plmin,vlmin,vlmax,tol
+
+
+      nelgv0=nelgv 
+
+      ifxyo=.true.
+      param(66)=6.0
+
+ccc      call my_cbc_chk('msh')
+      call lambda2(t)
+      call outpost(vx,vy,vz,pr,t,'msh')
+
+
+      ! STEP 2: select element to be removed
+      nxyz = lx1*ly1*lz1
+      tol  = 1.e-6   ! for detecting elemenets
+
+      call izero(elist,lelt)
+
+      do e=1,nelt
+
+        ! select via BC
+        do f=1,2*ldim
+          if (cbc(f,e,1).eq.'W  ') elist(e)=1
+        enddo
+
+c        ! select e crosee the surface, ax+by+cz+d=0 
+c        ca=0.0
+c        cb=1.0
+c        cc=0.0
+c        cd=0.0
+c
+c        do i=1,nxyz
+c          tmp(i,1,1)=ca*xm1(i,1,1,e)+cb*ym1(i,1,1,e)+cc*zm1(i,1,1,e)+cd
+c        enddo
+c 
+c        plmax=vlmax(tmp,nxyz)+tol
+c        plmin=vlmin(tmp,nxyz)-tol
+c
+c        if (plmax*plmin.lt.0) elist(e)=1
+
+      enddo
+
+
+c     STEP 3: set default bID for new bdry faces
+c       if new_bID<0, assign boundaryID = abs(new_bID) for all new boundary faces
+c       if new bID>0, fill boundaryID from the opposite face of the deleted element, then 
+c                     assign the rest with new_bID
+      new_bID = 99
+      call delete_elements(elist,new_bID)
+
+
+c     STEP 4: recover CBC via boundaryID
+c       use new_bID and whatever geometry info to assign new CBC
+      do e=1,nelv
+      do f=1,2*ldim
+
+        cbc(f,e,1) ='E  ' ! no periodic in this case
+        cbc(f,e,2) ='E  '
+
+        if (boundaryID(f,e).eq.new_bID) then ! new bdry faces
+          cbc(f,e,1) = 'WWW' 
+          cbc(f,e,2) = 't  '
+
+        elseif (boundaryID(f,e).eq.1) then
+          cbc(f,e,1) = 'v  ' 
+          cbc(f,e,2) = 't  '
+        elseif (boundaryID(f,e).eq.2) then
+          cbc(f,e,1) = 'O  ' 
+          cbc(f,e,2) = 'I  '
+        elseif (boundaryID(f,e).eq.3) then
+          cbc(f,e,1) = 'W  ' 
+          cbc(f,e,2) = 't  '
+        elseif (boundaryID(f,e).eq.4) then
+          cbc(f,e,1) = 'SYM' 
+          cbc(f,e,2) = 'I  '
+        endif
+
+      enddo
+      enddo
+
+
+c     STEP 5: dump mesh into restart file and re2
+
+      ! This will fill 5-th slot of the bc, comment it out if needed
+      !    bc(5,f,e,1) = boundaryID(f,e)
+      !    bc(5,f,e,2) = boundaryIDt(f,e)
+      call del_boundaryID_to_bc5
+
+      ! chk and dump mesh    
+      imid = 1  ! imid for gen_re2
+      ifbinary = .true.
+      call del_dump_mesh('fin',imid,ifbinary)
+      call outpost(vx,vy,vz,pr,t,'fin') 
+      call my_plot_vcbc
+
+      if (nio.eq.0)
+     $  write(*,*)'DONE: delete_el Eold=',nelgv0,' Enew=',nelgv
+      call exitt0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine my_plot_vcbc
+      implicit none
+      include 'SIZE'
+      include 'TOTAL'
+
+      integer e,f,n
+      character*3 cb3
+      real tmp1(lx1*ly1*lz1*lelv)
+      real tmp2(lx1*ly1*lz1*lelv)
+
+      n=lx1*ly1*lz1*nelt
+
+      call rzero(tmp1,n)
+      call rzero(tmp2,n)
+
+      do e=1,nelv
+      do f=1,2*ldim
+
+        cb3=cbc(f,e,1)
+
+        if (cb3.eq.'E  '.OR.cb3.eq.'   '.OR.
+     $      cb3.eq.'P  '.OR.cb3.eq.'p  ') then
+          call facev(tmp1,e,f,0.0,lx1,ly1,lz1)
+
+        elseif (cb3.eq.'v  '.or.cb3.eq.'V  ') then
+          call facev(tmp1,e,f,1.0,lx1,ly1,lz1)
+
+        elseif (cb3.eq.'o  '.or.cb3.eq.'O  ') then
+          call facev(tmp1,e,f,2.0,lx1,ly1,lz1)
+
+        elseif (cb3.eq.'W  ') then
+          call facev(tmp1,e,f,3.0,lx1,ly1,lz1)
+
+        elseif (cb3.eq.'SYM') then
+          call facev(tmp1,e,f,4.0,lx1,ly1,lz1) 
+
+        else
+          call facev(tmp1,e,f,-1.0,lx1,ly1,lz1)
+        endif
+
+        call facev(tmp2,e,f,real(boundaryID(f,e)),lx1,ly1,lz1)
+
+      enddo
+      enddo
+
+      call outpost(tmp1,tmp2,vz,pr,t,'cbc')
+
+      if (nio.eq.0) then
+        write(*,*)'my_plot_vcbc: CBC color table'
+        write(*,*)'my_plot_vcbc: CBC: E  /   /P   /p   = 0'
+        write(*,*)'my_plot_vcbc: CBC: v  /V            = 1'
+        write(*,*)'my_plot_vcbc: CBC: o  /O            = 2'
+        write(*,*)'my_plot_vcbc: CBC: W                = 3'
+        write(*,*)'my_plot_vcbc: CBC: SYM              = 4'
+        write(*,*)'my_plot_vcbc: CBC: else             =-1'
+      endif
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userbc (ix,iy,iz,iside,ieg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      iel = gllel(ieg)
+      ux=1.0
+      uy=0.0
+      uz=0.0
+      temp=1.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine useric (ix,iy,iz,ieg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      iel = gllel(ieg)
+      UX=1.0
+      UY=0.0
+      UZ=0.0
+      TEMP=1.0
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat3
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat2
+      implicit none
+      include 'SIZE'
+      include 'TOTAL'
+      integer e,f
+      character*3 cb3
+
+      ! STEP 1: map cbc into boundaryID
+      do e=1,nelv
+      do f=1,2*ldim
+
+        boundaryID(f,e) = 0
+        cb3=cbc(f,e,1)
+
+        if (cb3.eq.'v  ') then
+          boundaryID(f,e) = 1
+        elseif (cb3.eq.'O  ') then
+          boundaryID(f,e) = 2
+        elseif (cb3.eq.'W  ') then
+          boundaryID(f,e) = 3
+        elseif (cb3.eq.'SYM') then
+          boundaryID(f,e) = 4
+
+        elseif (cb3.ne.'E  '.AND.cb3.ne.'   '.AND.
+     $          cb3.ne.'P  '.AND.cb3.ne.'p  ') then
+          write(*,*)'rdat2: un-identified cbc',lglel(e),f,cb3
+          call exitt
+        endif
+      enddo
+      enddo
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat
+      return
+      end
+c-----------------------------------------------------------------------

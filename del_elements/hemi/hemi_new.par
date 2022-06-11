@@ -1,0 +1,38 @@
+[GENERAL]
+startFrom = "ref2.fld"
+stopAt = numSteps
+numSteps = 1000
+
+dt = -5.0e-3
+timeStepper = bdf3
+#extrapolation = OIFS
+#targetCFL = 2.0
+
+writeControl = TIMESTEP
+writeInterval = 100 
+
+filtering = explicit
+filterWeight = 5e-3
+filterModes = 1
+
+
+[PRESSURE]
+preconditioner = semg_amg_hypre
+#preconditioner = semg_xxt
+residualTol = 1e-04
+
+[VELOCITY]
+density = 1.0
+viscosity = -1400.0
+residualTol = 1e-06
+
+[TEMPERATURE]
+solver = none
+#boundaryTypeMap = inlet, outlet, insulated, flux
+#rhoCp = 1.0
+#conductivity = -100
+#residualTol = 1e-06
+
+#[SCALAR01]
+#solver = none
+

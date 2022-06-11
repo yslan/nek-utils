@@ -1,0 +1,111 @@
+c-----------------------------------------------------------------------
+      subroutine uservp (ix,iy,iz,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      integer e,f,eg
+      e = gllel(eg)
+
+      udiff =1.0
+      utrans=1.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userf  (ix,iy,iz,iel)
+      include 'SIZE'
+      include 'TSTEP'
+c     include 'TOTAL'
+      include 'NEKUSE'
+      ffx = 0.0
+      ffy = 0.0
+      ffz = 0.0
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userq  (ix,iy,iz,iel)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      qvol   = 0.0
+      source = 0.0
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userchk 
+      implicit none
+      include 'SIZE'
+      include 'TOTAL'
+
+      if (istep.eq.0) call outpost(vx,vy,vz,pr,t,'   ')
+      if (mod(istep,iostep).eq.0.AND.istep.gt.0) call lambda2(t)
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userbc (ix,iy,iz,iside,ieg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      iel = gllel(ieg)
+      ux=1.0
+      uy=0.0
+      uz=0.0
+      temp=1.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine useric (ix,iy,iz,ieg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      iel = gllel(ieg)
+      UX=1.0
+      UY=0.0
+      UZ=0.0
+      TEMP=1.0
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat3
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat2
+      implicit none
+      include 'SIZE'
+      include 'TOTAL'
+      integer e,f
+      character*3 cb3
+
+      do e=1,nelv
+      do f=1,2*ldim
+
+        boundaryID(f,e) = 0
+        cb3=cbc(f,e,1)
+
+        if (cb3.eq.'v  ') then
+          boundaryID(f,e) = 1
+        elseif (cb3.eq.'O  ') then
+          boundaryID(f,e) = 2
+        elseif (cb3.eq.'W  ') then
+          boundaryID(f,e) = 3
+        elseif (cb3.eq.'SYM') then
+          boundaryID(f,e) = 4
+
+        elseif (cb3.ne.'E  '.AND.cb3.ne.'   '.AND.
+     $          cb3.ne.'P  '.AND.cb3.ne.'p  ') then
+          write(*,*)'rdat2: un-identified cbc',lglel(e),f,cb3
+          call exitt
+        endif
+      enddo
+      enddo
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat
+      return
+      end
+c-----------------------------------------------------------------------
