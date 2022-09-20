@@ -19,11 +19,7 @@ This is a modified copy of the original Nek5000's `prepost.f`.
 ## Features
 - Supports nek5000 outpot formats p66=0, 4, or 6
 - Supports nek5000 standard fields (velocity, pressure, temperature and passive scalars) and the control (eg: `ifxyo` and `ifreguo`)
-- Tested with a 98M mesh (lx1=8).   
-   ```
-   original file: 98.7M elements, 1.3TB 
-   selected files: 709.8k elements, 11GB. (0.719%)
-   ```
+- Tested with a 98M mesh (lx1=9).   
 
 ## Examples
 
@@ -35,22 +31,25 @@ This is a modified copy of the original Nek5000's `prepost.f`.
    - an example to dump the high CFL elements
 
 - 350k pebbles          
-   ```
-   Original restart file: 1.9 TB (E98.7M, lx1=9)
-   Selected elements:
-     1.7GB zmax plane (E76,210)
-     5.8GB yz-plane (E264,961)
-     6.9GB inner cylinder (E315,230)
-      13GB half ouer cylinder (E584,293)
-   sum = 26GB
-   ```
 
-   ![](ann350k_lowres.png)    
-
-   - The userchk and the related functions are posted below  
-
+  <table style="width:100%">
+  <tr><td width="600"><img src="ann350k_lowres.png"></td>
+  </td><td width="600">
+   Original file: 1.9 TB (E98.7M, lx1=9) <br>
+   Selected files: 26 GB (4 files) (0.136%) <br>
+   -   1.7GB zmax plane (E76,210)   <br>
+   -   5.8GB yz-plane (E264,961)   <br>
+   -   6.9GB inner cylinder (E315,230)   <br>
+   -   13GB half ouer cylinder (E584,293)   <br><br>
+   Spheres: sphere centers stored in csv format. <br>
+   Visualized by ParaView <br>
+  </tr>
+</table> 
 
 ```
+ccc  
+ccc    The userchk and the related functions are posted below
+ccc    
 c-----------------------------------------------------------------------
      subroutine userchk
      include 'SIZE'
