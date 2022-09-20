@@ -27,15 +27,29 @@ This is a modified copy of the original Nek5000's `prepost.f`.
 
 ## Examples
 
-- `hemi`    
+- `hemi/`    
    - Nek5000's hemi examples, read from a file for non-trivial fields   
    - only dump the elements cross `y=0` plane   
 
-- `hemi_cfl`      
+- `hemi_cfl/`      
    - an example to dump the high CFL elements
 
-- 350k pebbles    
+- 350k pebbles          
+   ```
+   Original restart file: 1.9 TB (E98.7M, lx1=9)
+   Selected elements:
+     1.7GB zmax plane (E76,210)
+     5.8GB yz-plane (E264,961)
+     6.9GB inner cylinder (E315,230)
+      13GB half ouer cylinder (E584,293)
+   sum = 26GB
+   ```
+
+   ![](ann350k_lowres.png)    
+
    - The userchk and the related functions are posted below  
+
+
 ```
 c-----------------------------------------------------------------------
      subroutine userchk
