@@ -10,6 +10,11 @@ Some codes are experimental. Feel free to report issues and bugs.
 
 ## Overview
 
+- `usr_extra/`
+   - __Main__: This store those isolated `*.f` files that I usually use is to do some checks or post-processing
+   - __Usage__: Include the file in .usr file. See the README.md for individual subroutines.
+   - __TODO__: I just start collecting them together. Will remember to copy files here when I see them.
+
 - `outpost-select/`
    - __Main__: A modified nek `outpost` allowing user to only dump the user-selected elements to reduce the size of the output file and the visualization cost.   
    - __Usage__: independent file included from a nek user file.   
@@ -41,7 +46,7 @@ Some codes are experimental. Feel free to report issues and bugs.
 - `del_elements/`
   - __Main__: delete selected elements from mesh in nek
   - __Usage__: independent file included from a nek user file. 
-  - __TODO__: ad feature like BC tracing
+  - __TODO__: add feature like BC tracing and dump co2 files
 
 ## TODO:
 - mesh smoother   
