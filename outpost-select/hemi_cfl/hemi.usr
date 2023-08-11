@@ -39,9 +39,10 @@ c-----------------------------------------------------------------------
       include 'SIZE'
       include 'TOTAL'
 
-      integer elist(lelt),e
+      integer elist(lelt),e,elsum,iglsum,inei,nnei
       common /imy_fld/ elist
 
+      real rtmp(lx1*ly1*lz1,lelt)
       ifto = .true.
       ifxyo= .true.
 
@@ -51,48 +52,64 @@ c-----------------------------------------------------------------------
       p66=param(66)
       param(66)=6.0
 
-
-      ! Assume that CFL is computed in advance and store in cflf (declared in SOLN)
-      ! Note, the CFL might be lagged 1 timesteps (TODO: need verify)
-      ! Here, we compute redundently with the collowing subroutine
-      ! Also, note that cflf is computed based on dt=1.0 by default
+c     Note:
+c       1, Assume that CFL is computed in advance and store in cflf (declared in SOLN)
+c       2. The CFL might be lagged 1 timesteps (TODO: need verify)
+c       3. User can compute redundently with the collowing subroutine, where
+c          cflf is computed based on dt=1.0 by default
 
 c      call compute_cfl(umax,vx,vy,vz,1.0) ! based on  dt=1.0
 c      cfl_max = dt*umax
 
-
-
-      ! dump E having CFL >= 2
+      ! Example 1: dump E having CFL >= 2
       call izero(elist,lelt)
-
       do e=1,nelt
         cfl_e = vlmax(cflf(1,1,1,e),nxyz)*dt
         if (cfl_e.ge.2.0) elist(e) = 1
       enddo
-      call my_outpost(elist,vx,vy,vz,pr,cflf,'cf1')
+      elsum = iglsum(elist,nelt)
+      if (elsum.gt.0) then
+         call my_outpost(elist,vx,vy,vz,pr,cflf,'cf1')
+      endif
 
-
-      ! dump E having largest CFL
+      ! Example 2: dump E having largest CFL
+      call izero(elist,lelt)
       tol=1.e-6
       cfl_max = glmax(cflf,ntot)*dt
       if(nio.eq.0)write(*,*)'cflmax',istep,cfl_max,dt
-
-      call izero(elist,lelt)
-
       do e=1,nelt
         cfl_e = vlmax(cflf(1,1,1,e),nxyz)*dt
         if (cfl_e.gt.cfl_max-tol) elist(e) = 1
       enddo
-      call my_outpost(elist,vx,vy,vz,pr,cflf,'cf2')
+      elsum = iglsum(elist,nelt)
+      if (elsum.gt.0) then
+         call my_outpost(elist,vx,vy,vz,pr,cflf,'cf2')
+      endif
 
+      ! Example 3: dump neighbor elements as well
+      nnei=3 ! extend 3 neighbor
 
+      elsum = iglsum(elist,nelt)
+      if (nio.eq.0) write(*,*)' nei',0,' elements=',elsum
+      do inei=1,nnei
+         call rzero(rtmp,ntot)
+         do e=1,nelt
+            if (elist(e).gt.0) call rone(rtmp(1,e),nxyz)
+         enddo
+
+         call dssum(rtmp,lx1,ly1,lz1)
+
+         do e=1,nelt
+            if (vlmax(rtmp(1,e),nxyz).gt.0.1) elist(e) = 1
+         enddo
+         elsum = iglsum(elist,nelt)
+         if (nio.eq.0) write(*,*)' nei',inei,' elements=',elsum
+      enddo
+
+      if (elsum.gt.0) then
+         call my_outpost(elist,vx,vy,vz,pr,cflf,'cf3')
+      endif
       param(66)=p66
-
-
-
-
-
-
 
       return
       end
