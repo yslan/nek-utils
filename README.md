@@ -10,6 +10,11 @@ Some codes are experimental. Feel free to report issues and bugs.
 
 ## Overview
 
+- `machines_list/`
+   - __Main__: A place to put all of my scripts on server/machines
+   - __Usage__: Using scripts from a stranger is dangerous. Use them at your own risk.   
+   - __TODO__: Those scripts might not be up-to-date. Please contact me if you face issues.
+
 - `usr_extra/`
    - __Main__: This store those isolated `*.f` files that I usually use is to do some checks or post-processing
    - __Usage__: Include the file in .usr file. See the README.md for individual subroutines.
@@ -47,6 +52,12 @@ Some codes are experimental. Feel free to report issues and bugs.
   - __Main__: delete selected elements from mesh in nek
   - __Usage__: independent file included from a nek user file. 
   - __TODO__: add feature like BC tracing and dump co2 files
+
+- `p3d2nek/`
+  - __Main__: converting plot3d mesh to nek meshes
+  - __Usage__: [repo] MATLAB scripts
+  - __TODO__: See the README
+  
 
 ## TODO:
 - mesh smoother   

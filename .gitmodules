@@ -7,3 +7,6 @@
 [submodule "SphereMesh"]
 	path = SphereMesh
 	url = https://github.com/yslan/SphereMesh
+[submodule "p3d2nek"]
+	path = p3d2nek
+	url = https://github.com/yslan/p3d2nek
