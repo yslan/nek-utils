@@ -416,7 +416,7 @@ c-----------------------------------------------------------------------
         call i8copy(vtx(1,e),vertexc(1,1,1,e),nxyv)
       enddo
 
-      call FPSORT_INT8(vertexu,nvtx,vtx,ialgo,lb,nekcomm,ierr)
+c      call FPSORT_INT8(vertexu,nvtx,vtx,ialgo,lb,nekcomm,ierr)
       ierr = iglmax(ierr,1)
 
       return
@@ -1976,7 +1976,7 @@ c-----------------------------------------------------------------------
       ialgo = 0 ! 0=bin sort, 1=hyprecube sort
       lb = 0 ! 1=load balanced
 
-      call FPSORT_INT8(ind,nlen,ivtx,ialgo,lb,nekcomm,ierr)
+c      call FPSORT_INT8(ind,nlen,ivtx,ialgo,lb,nekcomm,ierr) ! FIXME
 cc    call fparrsb_fpsort_int8(ind,nlen,ivtx,ialgo,lb,nekcomm,ierr)
       call nekgsync()
 
