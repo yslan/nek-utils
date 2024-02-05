@@ -1,0 +1,223 @@
+      include 'refine.f'
+      include 'my_errchk.f' ! mesh chk
+      include 'my_post.f'  ! selected outpost
+c-----------------------------------------------------------------------
+      subroutine uservp(ix,iy,iz,eg) ! set up initial conditions
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      integer ix,iy,iz,eg
+      udiff =0.
+      utrans=0.
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userq(ix,iy,iz,eg) ! set up initial conditions
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      integer ix,iy,iz,eg
+      qvol   = 0.0
+      source = 0.0
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userf(ix,iy,iz,eg) ! set up initial conditions
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      integer ix,iy,iz,eg
+
+      ffx = 0.0
+      ffy = 0.0
+      ffz = 0.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userbc(ix,iy,iz,iside,eg) ! set up initial conditions
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer ix,iy,iz,iside,eg,ie
+
+      ie = gllel(eg)
+      ux   = 1.0
+      uy   = 0.0
+      uz   = 0.0
+      temp = 0.0
+      flux = 1.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine useric(ix,iy,iz,eg) ! set up initial conditions
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      integer ix,iy,iz,eg
+
+      ux   = 1.0
+      uy   = 0.0
+      uz   = 0.0
+      temp = 0.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat()
+      include 'SIZE'
+      include 'TOTAL'
+
+c      param(40) = 2     ! hypre boomer amg
+c      param(22) = 1.e-6 ! Helmholtz tolerance
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat2()  ! This routine to modify mesh coordinates
+      include 'SIZE'
+      include 'TOTAL'
+
+      n = lx1*ly1*lz1*nelv
+
+      ! Deform box to a wavy wall
+      ! assum input mesh is a box, [0,1]^dim
+      xlen= 2.0
+      amp = 0.2
+      freq= 1.0*pi
+      xmx = glmax(xm1,n)
+      xmn = glmin(xm1,n)
+      scale = xlen/(xmx-xmn)
+      call cmult(xm1,scale,n)
+
+      do i=1,n
+        xx = xm1(i,1,1,1)
+        yy = ym1(i,1,1,1)
+        ym1(i,1,1,1) = yy + yy * amp * sin(xx*freq)
+      enddo
+c      call fix_geom(1)
+
+      call my_cbc_chk('re2')  ! print CBC from re2
+c     call izero(igroup,lelv) ! clear igroup
+
+      ! Step 1: backup original cbc from mesh
+      call rfn_backup_boundary_id(1)
+    
+      ! Step 2: Set cbc for refine
+      do iel=1,nelv
+      do ifc=1,ldim*2
+        if (cbc(ifc,iel,1).eq.'E  '.OR.cbc(ifc,iel,1).eq.'   '.OR.
+     $      cbc(ifc,iel,1).eq.'P  '.OR.cbc(ifc,iel,1).eq.'p  ') then ! do nothing
+        elseif (cbc(ifc,iel,1).eq.'W01') then ! xmin
+          cbc(ifc,iel,1) = 'v  '
+          cbc(ifc,iel,2) = 't  ' 
+        elseif (cbc(ifc,iel,1).eq.'W02') then ! xmax
+          cbc(ifc,iel,1) = 'O  '
+          cbc(ifc,iel,2) = 'O  '
+        elseif (cbc(ifc,iel,1).eq.'W03') then ! ymin
+          cbc(ifc,iel,1) = 'SYM'
+          cbc(ifc,iel,2) = 'I  '
+        elseif (cbc(ifc,iel,1).eq.'W04') then ! ymax
+          cbc(ifc,iel,1) = 'W  '
+          cbc(ifc,iel,2) = 'f  '
+        else
+          write(*,*) 'unidentified bdry',nid,iel,ifc,cbc(ifc,iel,1)
+          call exitt
+        endif
+      enddo
+      enddo
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userchk()
+      include 'SIZE'
+      include 'TOTAL'
+
+      integer Nref,lref,bID
+      parameter(lref=4) ! max layers, if you need more, check REFINE as well
+      real Rref(lref-1),Rlim(4,lref-1)
+      logical ifbinary
+
+      ifbinary = .true. ! T: dump binary re2, F: dump ascii rea (only the mesh part)
+
+      if (istep.eq.0) then
+        call outpost(vx,vy,vz,pr,t,'ooo')    ! original mesh
+
+        ! Step 3: setup vars for refinements
+        call rzero(Rref,lref-1)
+        call rzero(Rlim,(lref-1)*4)
+
+        Nref = 3 ! 1 layer -> 3 layers of elements
+
+        ! ratio for splitting in (0,1), from bdry to interior
+        Rref(1) = 0.05                ! first layer (on bdry) is 5%
+        Rref(2) = 0.45*(1.0-Rref(1))  ! second layer is 45% of the remaining 95%
+                                      ! remaining space is for third layer (1 - 5% - 45% x 95%)
+
+        ! limiter 1: global limiter
+        Rlim(1,1) = 0.05   ! layer 1, min thickness is at least 0.05
+        Rlim(2,1) = 0.0    ! layer 1, max thickness, 0 = do nothing
+        Rlim(1,2) = 0.2    ! layer 2, min thickness is at least 0.2
+        Rlim(2,2) = 0.0    ! layer 2, max thickness, 0 = do nothing
+        ! limiter 2: local limiter, use hex27 (last time I check, this is buggy)
+        Rlim(3,1) = 0.0    ! layer 1 min thickness
+        Rlim(4,1) = 0.0    ! layer 1 max thickness
+        Rlim(3,2) = 0.0    ! layer 2 min thickness
+        Rlim(4,2) = 0.0    ! layer 2 max thickness
+
+        ! refine boundary layer at ymax
+        bID = 0 ! If bID>0, use boundaryID=bID to tag elements, otherwise use CBC = 'W  '
+        call rfn_split('W  ',bID,Nref,Rref,Rlim) 
+
+        ! Step 4: dump mesh
+        call outpost(vx,vy,vz,pr,t,'aaa')
+        call rfn_dump_mesh('aaa',ifbinary) ! dump mesh
+
+
+        ! Step 5: recursively refine xmax with 50-50 split
+        call rzero(Rlim,(lref-1)*4)
+        Rref(1) = 0.5
+
+        call rfn_split('O  ',0,2,Rref,Rlim)
+        call rfn_split('O  ',0,2,Rref,Rlim)
+        call rfn_split('O  ',0,2,Rref,Rlim)
+        call outpost(vx,vy,vz,pr,t,'bbb')
+        call rfn_dump_mesh('bbb',ifbinary) ! dump mesh
+
+
+        ! Step 6: refine at bottom to demo max-limiter
+        call rzero(Rlim,(lref-1)*4)
+        Rref(1) = 0.5      ! Start with a 50-50 split
+        Rlim(2,1) = 0.05   ! layer 1, max thickness = 0.05
+        call rfn_split('SYM',0,2,Rref,Rlim)
+        call outpost(vx,vy,vz,pr,t,'ccc')
+        call rfn_dump_mesh('ccc',ifbinary) ! dump mesh
+
+        call exitt0
+      endif
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usr_extrude_pj(xf_o,yf_o,zf_o,xf_i,yf_i,zf_i,igeo)
+      implicit none
+      include 'SIZE'
+      real xf_o(1),yf_o(1),zf_o(1)
+      real xf_i(1),yf_i(1),zf_i(1)
+      integer igeo
+
+c     Fill this subroutine for the extrusion
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat3()
+      include 'SIZE'
+      include 'TOTAL'
+
+      return
+      end
+c-----------------------------------------------------------------------
