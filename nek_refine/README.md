@@ -58,7 +58,8 @@ Features:
 - Run in parallel
 - Support 2D/3D
 - Watertight (requred a special version of parRSB for parallel sorting, FIXME)      
-  input co2/ma2, dump co2 for new meshes
+  input co2/ma2, dump co2 for new meshes     
+  Please ignore newly generated co2 file for now unless you have `FPSORT_INT8` in refine.f
 - Extrusion onto defined geometry
 - Reusability: multiple refinement + extrusion combination (not well-tested)
 
