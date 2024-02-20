@@ -10,6 +10,6 @@
 [submodule "p3d2nek"]
 	path = p3d2nek
 	url = https://github.com/yslan/p3d2nek
-[submodule "NekrsExamples"]
-	path = NekrsExamples
-	url = https://github.com/yslan/NekrsExamples
+[submodule "nekrsExamples"]
+	path = nekrsExamples
+	url = https://github.com/yslan/nekrsExamples
