@@ -3,3 +3,8 @@
 *makenek
 *nekbmpi
 *.fld
+*0.f0*
+*fort.*
+*.dra
+*.tmp
+.state
