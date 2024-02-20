@@ -15,6 +15,10 @@ Some codes are experimental. Feel free to report issues and bugs.
    - __Usage__: Using scripts from a stranger is dangerous. Use them at your own risk.   
    - __TODO__: Those scripts might not be up-to-date. Please contact me if you face issues.
 
+- `nekrsExamples/`
+   - __Main__: Extra examples for NekRS. Focusing on realization of Nek5000 functionality inside NekRS
+   - __Usage__: See independent examples.
+
 - `usr_extra/`
    - __Main__: This store those isolated `*.f` files that I usually use is to do some checks or post-processing
    - __Usage__: Include the file in .usr file. See the README.md for individual subroutines.
