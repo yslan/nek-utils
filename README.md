@@ -8,6 +8,9 @@ I will put proper reference and lisence later.
 
 Some codes are experimental. Feel free to report issues and bugs.   
 
+Please use this as a dictionary to other repositories.
+I suggest to use the latest/release version from repositories. The submodules might not up-to-date.
+
 ## Overview
 
 - `machines_list/`
