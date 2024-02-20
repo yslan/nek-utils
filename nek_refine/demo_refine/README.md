@@ -3,11 +3,7 @@
 Follow the `Step` in the user file.
 Our input mesh is a 2 x 4 wavy box where the curves are assigned in userdat2.
 
-![](./ooo.png)
-
-Note that the BC in re2 are 
-
-![](./ooo_bc.png)
+<img src="ooo.png" width="400"/>   <img src="ooo_bc.png" width="400"/>
 
 You can find the following BC count called by `my_cbc_chk` at `usrdat2`
 ```
@@ -31,17 +27,18 @@ You can find the following BC count called by `my_cbc_chk` at `usrdat2`
 
 - Step 2: Set up dummy BC to do refinement
   You can either using boundaryID or CBC to tag elements. In this example, we use CBC.       
+  The dummy CBC are set as follow.
+  The fluid flows from left (`v  `) to right (`O  `). Wavy wall at the top (`W  `) and `SYM` at the bottom.
 
-  ![](./ooo_bc_dummy.png)
-
-  The dummy CBC are set as follow. The fluid flows from left (`v  `) to right (`O  `). Wavy wall at the top (`W  `) and `SYM` at the bottom.
+  <img src="ooo_bc_dummy.png" width="400"/>
 
 
 - Step 3: refine demo       
 
-  - Number of layers: Let's refine the wavy wall by splitting the top layer into three.   
+  - Number of layers: Let's refine the wavy wall by splitting the top layer into three.
+     
     ```
-  Nref = 3  ! 1 layer -> 3 layers of elements, max(Nref) <= lref
+    Nref = 3  ! 1 layer -> 3 layers of elements, max(Nref) <= lref
     ```
 
   - Thickness of each layers     
@@ -81,7 +78,7 @@ You can find the following BC count called by `my_cbc_chk` at `usrdat2`
         Rlim(2,2) = 0.0    ! layer 2, max thickness, 0 = do nothing
      ```
 
-     ***Limiter 2*** local limiter (experimental, this is buggy?)
+     ***Limiter 2:*** local limiter (experimental, this is buggy?)
      The local limiter only apply locally by consider all edges one by one.
      If there is one element shorter than min-control, only that edge will be modified.   
      However, this requires a full reconstruction of Gordon-Hall mapping. 
@@ -100,26 +97,27 @@ You can find the following BC count called by `my_cbc_chk` at `usrdat2`
 
   `newre2aaa.re2` and `aaabox0.f00001`
 
-  ![](./aaa.png)
+  <img src="aaa.png" width="400"/>
 
   One can also count the new BC. You will find `W01` and `W02` increases from 2 to 4, which is expected.
   ```
- aaaBC: E            48
- aaaBC: W03           4
- aaaBC: W02           4
- aaaBC: W04           4
- aaaBC: W01           4
- aaaBC: sum          64
+   aaaBC: E            48
+   aaaBC: W03           4
+   aaaBC: W02           4
+   aaaBC: W04           4
+   aaaBC: W01           4
+   aaaBC: sum          64
   ```
 
 
 ### More example
 
 - Step 5: recursive refinement      
-  Yes. You can call `rfn_split` multiple time. 
+  Yes. You can call `rfn_split` multiple time.    
   Here, we do 50-50 split at outflow, three times and dump it to `bbb`
 
-  ![](./bbb.png)
+  <img src="bbb.png" width="400"/>
+
 
 
 - Step 6: limiter    
@@ -138,7 +136,8 @@ You can find the following BC count called by `my_cbc_chk` at `usrdat2`
 
   The final outcome `ccc` also shows that the thickness of the bottom layer is not a constant. 
   It's actually still wavy.
-  ![](./ccc.png)
+  <img src="ccc.png" width="400"/>
+
 
 
 
