@@ -1,6 +1,6 @@
 # Machines list
 
-This is, and will always be, undersonctruction.
+This is, and will always be, under construction.
 
 My collection of the toys with the configuration/instruction/doc for running Nek5000/NekRS, including scipts, modules and shortcuts.
 
