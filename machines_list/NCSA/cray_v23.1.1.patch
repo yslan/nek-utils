@@ -1,0 +1,26 @@
+diff --git a/config/utils.cmake b/config/utils.cmake
+index 6d5d32b1..8149fa58 100644
+--- a/config/utils.cmake
++++ b/config/utils.cmake
+@@ -2,8 +2,12 @@ function (__MPI_find_compiler LANG QUERY_FLAG OUTPUT_VARIABLE)
+   separate_arguments(_MPI_COMPILER_WRAPPER_OPTIONS NATIVE_COMMAND "${QUERY_FLAG}")
+   set(DUMMYSRC "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeTmp/src.cxx")
+   file(WRITE ${DUMMYSRC} "int main() { return 0; }\n")
++
++  string(REPLACE " " ";" TMP_LIST $ENV{LDFLAGS})
++  set (EXECUTE_COMMAND ${MPI_${LANG}_COMPILER} ${TMP_LIST} ${_MPI_COMPILER_WRAPPER_OPTIONS} ${DUMMYSRC})
++
+   execute_process(
+-    COMMAND ${MPI_${LANG}_COMPILER} ${_MPI_COMPILER_WRAPPER_OPTIONS} ${DUMMYSRC}
++    COMMAND ${EXECUTE_COMMAND}
+     OUTPUT_VARIABLE  WRAPPER_OUTPUT OUTPUT_STRIP_TRAILING_WHITESPACE
+     ERROR_VARIABLE   WRAPPER_ERR ERROR_STRIP_TRAILING_WHITESPACE
+     RESULT_VARIABLE  WRAPPER_RETURN)
+@@ -12,6 +16,7 @@ function (__MPI_find_compiler LANG QUERY_FLAG OUTPUT_VARIABLE)
+   # library that has invalid or missing version information there would be warning
+   # messages emitted by ld.so in the compiler output. In either case, we'll treat
+   # the output as invalid.
++
+   set(WRAPPER_OUTPUT "${WRAPPER_OUTPUT} ${WRAPPER_ERR}")
+   if("${WRAPPER_OUTPUT}" MATCHES "undefined reference|unrecognized|need to set|no version information available|command not found")
+     set(WRAPPER_RETURN 255)

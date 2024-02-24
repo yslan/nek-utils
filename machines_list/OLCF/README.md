@@ -49,3 +49,40 @@ script `nrsqsub_frontier`
   - add precompialtion for neknek
 
 
+## Summit (PLUS)
+
+![OS update](https://docs.olcf.ornl.gov/software/software-news.html)
+
+scripts `nrsqsub_summit`
+
+- version: v23 or v23.1.1 (7237c89d)
+- last update: 02/24/24
+- notable changes (diff from source code)
+  - Update module list due to OS udpate. Now, it's version specific.
+  - Add `NEKRS_DFLOAT_FP32` to use `nekrs-fp32`
+  - Add `NEKRS_BUILD_ONLY` to submit a single node job for precompilation
+  - Add `QUEUE` to easily switch between `batch` and `debug`
+  - Add time format check
+  - keep tmp $SFILE to keep track last submission. (one can also use `bjobs -l`/`bjobs -d`)
+
+- env
+  ```
+  module load DefApps-2023
+  module load gcc/9.1.0 cmake/3.23.1 cuda/11.0.3
+  module unload darshan-runtime
+
+  module list
+
+  #Currently Loaded Modules:
+  #  1) lsf-tools/2.0   5) gcc/9.1.0                        9) nsight-systems/2021.3.1.54
+  #  2) hsi/5.0.2.p5    6) spectrum-mpi/10.4.0.3-20210112  10) cuda/11.0.3
+  #  3) xalt/1.2.1      7) cmake/3.23.1
+  #  4) DefApps-2023    8) nsight-compute/2021.2.1
+  ```
+
+- note
+  - IBM mpi only (officially) supports up to cuda 11.0.3 
+    ![MPI Aware CUDA](https://docs.olcf.ornl.gov/systems/summit_user_guide.html#unsupported-cuda-versions-do-not-work-with-gpu-aware-mpi)
+
+  - cuda 11 only support at most gcc 9
+
