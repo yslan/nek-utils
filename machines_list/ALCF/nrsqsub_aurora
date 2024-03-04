@@ -4,7 +4,7 @@
 # Default parameters
 : ${PROJ_ID:="CSC249ADCD04_CNDA"}
 : ${QUEUE:="EarlyAppAccess"}
-: ${NEKRS_HOME:="/lus/gecko/projects/CSC249ADCD04_CNDA/ylan/.local/nekrs_stefan_v24_022124"}
+: ${NEKRS_HOME:="/lus/gecko/projects/CSC249ADCD04_CNDA/ylan/.local/nekrs_stefan_v24_022224"}
 : ${NEKRS_SKIP_BUILD_ONLY:=0}
 : ${NEKRS_BUILD_ONLY:=0}
 : ${NEKRS_DFLOAT_FP32:=0}
@@ -14,7 +14,7 @@
 
 : ${GPUS_PER_NODE:=12}
 : ${ONEAPI_MODULE:="oneapi/eng-compiler/2023.05.15.006"}
-: ${MPICH_MODULE:="mpich/52.2"}
+#: ${MPICH_MODULE:="mpich/52.2"}
 #--------------------------------------
 # Validate input arguments
 if [ $# -ne 3 ]; then
@@ -100,8 +100,8 @@ echo "echo Running on nodes \`cat \$PBS_NODEFILE\`" >>$SFILE
 echo "module use /soft/modulefiles" >> $SFILE
 echo "module load spack-pe-oneapi cmake" >> $SFILE
 echo "module load $ONEAPI_MODULE" >> $SFILE
-echo "module unload mpich" >> $SFILE
-echo "module load $MPICH_MODULE" >> $SFILE
+#echo "module unload mpich/51.2/icc-all-pmix-gpu" >> $SFILE
+#echo "module load $MPICH_MODULE" >> $SFILE
 
 echo "module list" >> $SFILE
 echo "type -a mpiexec" >> $SFILE
@@ -119,6 +119,9 @@ echo "export LANG=en" >> $SFILE
 echo "export OMP_PROC_BIND=spread" >> $SFILE
 echo "export OMP_NUM_THREADS=1" >> $SFILE
 echo "unset OMP_PLACES" >> $SFILE
+
+echo "export PARRSB_VERBOSE_LEVEL=1" >> $SFILE
+echo "export PARRSB_LEVELS=3" >> $SFILE
 
 echo "export OCCA_DPCPP_COMPILER_FLAGS=\"$OCCA_DPCPP_COMPILER_FLAGS\"" >> $SFILE
 echo "export SYCL_PI_LEVEL_ZERO_USE_IMMEDIATE_COMMANDLISTS=1" >> $SFILE

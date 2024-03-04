@@ -26,18 +26,23 @@ script `nrsqsub_aurora`
   module use /soft/modulefiles
   module load spack-pe-oneapi cmake
   module load oneapi/eng-compiler/2023.05.15.006
-  module unload mpich/51.2/icc-all-pmix-gpu
-  module load mpich/52.2
-  
   module list
 
   #Currently Loaded Modules:
-  #  1) gcc/11.2.0             6) spack-pe-oneapi/0.5-rc1
-  #  2) libfabric/1.15.2.0     7) cmake/3.26.4-gcc-testing
-  #  3) cray-pals/1.3.3        8) intel_compute_runtime/release/agama-devel-647
-  #  4) cray-libpals/1.3.3     9) oneapi/eng-compiler/2023.05.15.006
-  #  5) spack-pe-gcc/0.5-rc1  10) mpich/52.2/icc-all-pmix-gpu
+  #  1) gcc/11.2.0                    6) spack-pe-gcc/0.5-rc1
+  #  2) mpich/51.2/icc-all-pmix-gpu   7) spack-pe-oneapi/0.5-rc1
+  #  3) libfabric/1.15.2.0            8) cmake/3.26.4-gcc-testing
+  #  4) cray-pals/1.3.3               9) intel_compute_runtime/release/agama-devel-647
+  #  5) cray-libpals/1.3.3           10) oneapi/eng-compiler/2023.05.15.006
   ```
+
+- Compile
+  ```
+  CC=mpicc CXX=mpic++ FC=mpif77 ./build.sh -DENABLE_HYPRE_GPU=off
+  ```
+
+- note
+  - mpich/52.2 fails to run 2 nodes.
 
 - TODO: 
 
