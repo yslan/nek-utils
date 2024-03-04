@@ -14,8 +14,7 @@ script `nrsqsub_aurora`
 - version: v24.0.1
 - last update: 02/21/24
 - notable changes (diff from source code)
-  - Use `PrgEnv-amd` for a better compatibility of HIP libraries        
-    For example, `HYPRE_GPU`, `Ascent_HIP`
+  - massively clean up
   - Fix s.bin, don't remove cache everytime
   - adjust module load
   - Add `NEKRS_DFLOAT_FP32` to use `nekrs-fp32`
