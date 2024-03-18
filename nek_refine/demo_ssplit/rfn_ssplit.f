@@ -54,14 +54,14 @@ c     (Ncut+1)^2 elements. The vertical direction remains the same.
               call rzero(bc_wk(1,1,enow,2),5)
               call rzero(bc_wk(1,4,enow,1),5)
               call rzero(bc_wk(1,4,enow,2),5)
-              bID_wk(1,e1,1) = 0
-              bID_wk(1,e1,2) = 0
-              bID_wk(4,e1,1) = 0
-              bID_wk(4,e1,2) = 0
-              cbc_wk(1,e1,1) = 'E  '
-              cbc_wk(1,e1,2) = 'E  '
-              cbc_wk(4,e1,1) = 'E  '
-              cbc_wk(4,e1,2) = 'E  '
+              bID_wk(1,enow,1) = 0
+              bID_wk(1,enow,2) = 0
+              bID_wk(4,enow,1) = 0
+              bID_wk(4,enow,2) = 0
+              cbc_wk(1,enow,1) = 'E  '
+              cbc_wk(1,enow,2) = 'E  '
+              cbc_wk(4,enow,1) = 'E  '
+              cbc_wk(4,enow,2) = 'E  '
             endif
 
             ! vtx ! TODO
