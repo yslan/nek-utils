@@ -1,0 +1,39 @@
+[GENERAL]
+#startFrom = "smdsmth0.f00001 X"
+stopAt = numSteps
+numSteps = 1
+
+dt = 1.0e-2
+timeStepper = bdf2
+#extrapolation = OIFS
+#targetCFL = 4.0
+
+writeControl = TIMESTEP
+writeInterval = 1
+
+filtering = hpfrt
+filterWeight = 20
+filterModes = 2
+
+[PROBLEMTYPE]
+stressFormulation = yes
+
+[PRESSURE]
+#preconditioner = semg_amg_hypre
+preconditioner = semg_xxt
+residualTol = 1e-04
+
+[VELOCITY]
+density = 1.0
+viscosity = -100.0
+residualTol = 1.e-06
+
+[TEMPERATURE]
+#solver = none
+rhoCp = 1.0
+conductivity = -100.0
+residualTol = 1.e-06
+
+#[SCALAR01]
+#solver = none
+
