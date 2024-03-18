@@ -1,16 +1,16 @@
-# Machines list
+# Machines List
 
-This is, and will always be, under construction.
-
-My collection of the toys with the configuration/instruction/doc for running Nek5000/NekRS, including scipts, modules and shortcuts.
+My collection of the toys with the configuration/instruction/doc for running Nek5000/NekRS, including scripts, modules and shortcuts.
 
 Disclaimer:       
 - Using scripts from a stranger is dangerous. Use them at your own risk.   
-- Those scripts might be out-dated. In general, it should still work with minimal adjustment.      
+- This is, and will always be, under construction.
+  Those scripts might be out-dated. However, it should still work with minimal adjustment unless the machine has gone through a big upgrade.      
   Please feel free contact me for any issues or if you find new changes.    
 
+- This is simply a note for special machines, NOT a general guide to build NekRS.    
 
-Credits to all developers and users who built/modified/fixed/refined/debugged/used those scripts. 
+Credits to all developers and users who built, modified, fixed, refined, debugged, and used those scripts. 
 
 
 ### Naming rules (if present...)
@@ -59,6 +59,11 @@ NEKRS_DFLOAT_FP32
   bebop     
   swing     
 
+- JLSE      
+  nurburg
+
+- ANL/GCE
+
 - NERSC     
   perlmutter         
 
@@ -69,8 +74,7 @@ NEKRS_DFLOAT_FP32
   Campus Cluster     
   monza     
 
-- JLSE      
-  nurburg
+
       
 
 
@@ -79,6 +83,6 @@ NEKRS_DFLOAT_FP32
 This is not my first time trying to put the scripts together.     
 In case I haven't uploaded the script, you might find some old documentations through these links.
 
-[www on OLCF](https://users.nccs.gov/~ylan/machines_list/)
+[www on OLCF](https://users.nccs.gov/~ylan/machines_list/)        
 [private git](https://github.com/misunmin/ceed-yuhsiang/tree/master/2022_Summer/scales_crusher/scripts)
 

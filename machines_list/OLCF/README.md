@@ -45,9 +45,18 @@ script `nrsqsub_frontier`
   #  8) craype/2.7.19                          16) cmake/3.23.2
   ```
 
+- config
+  ```
+  CC=cc CXX=CC FC=ftn ./build.sh \
+   -DCMAKE_INSTALL_PREFIX=<path_to_installation>
+   -DENABLE_HYPRE_GPU=on \
+   -DNEKRS_BUILD_FLOAT=on
+  ```
+
 - TODO: 
   - add precompialtion for neknek
 
+---
 
 ## Summit (PLUS)
 
