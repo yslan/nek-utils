@@ -1,0 +1,207 @@
+      include 'refine.f'
+c-----------------------------------------------------------------------------
+      subroutine uservp (ix,iy,iz,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      udiff =0.
+      utrans=0.
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userf  (ix,iy,iz,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      ffx = 0.0
+      ffy = 0.0
+      ffz = 0.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userq  (ix,iy,iz,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      qvol   = 0.0
+      source = 0.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userchk
+      include 'SIZE'
+      include 'TOTAL'
+      integer Ncut, bID
+      logical ifbinary
+
+      call my_cbc_chk('000')
+
+      ifbinary = .true.
+
+      if (istep.eq.0) then
+
+        ! split: 1 -> 9
+        bID = 0
+        Ncut = 2 
+        call rfn_ssplit('S  ',bID,Ncut)
+
+        call outpost(vx,vy,vz,pr,t,'aaa')
+        call rfn_dump_mesh('aaa',ifbinary) 
+
+        ! we cannot do another split in a single run because the connectivity is not patched.
+        ! TODO: fix vertex inside ssplit, upd set_vert, gs_setup
+c        ! another split: 1 -> 9 
+c        bID = 0
+c        Ncut = 2
+c        call rfn_ssplit('S  ',bID,Ncut)
+c      
+c        call outpost(vx,vy,vz,pr,t,'bbb')
+c        call rfn_dump_mesh('bbb',ifbinary) 
+      endif
+
+      call exitt0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userbc (ix,iy,iz,iside,ieg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine useric (ix,iy,iz,ieg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat
+      implicit none
+      include 'SIZE'
+      include 'TOTAL'
+      real r1, r2, rmid, rr, rad, rdel, rtarget, ratio
+      real vsph(3), rmin, rmax, tol
+      integer iel, ifc, i, iv, ilv, Nlv
+
+      integer iftoiv(4,6)
+      data iftoiv / 1,2,5,6
+     $            , 2,4,6,8
+     $            , 4,3,8,7
+     $            , 3,1,7,5
+     $            , 1,2,4,3
+     $            , 5,6,8,7 /
+
+      if(ldim.ne.3) call exitti('this is for 3D$',1)
+
+      ! sphere center 
+      vsph(1) = 0.0 
+      vsph(2) = 0.0
+      vsph(3) = 0.0
+
+      r1 = 0.5
+      r2 = 1.0
+      Nlv = 2
+
+      rdel = (r2-r1)/(real(Nlv)*2.0)
+
+      ! re-project points back to spheres
+      ! assume all points are on sphere surface with some radii
+      rmid = 0.5*(r1+r2)
+      do iel=1,nelt
+      do i=1,8 
+        rr  = (xc(i,iel)-vsph(1))**2 
+     $      + (yc(i,iel)-vsph(2))**2 
+     $      + (zc(i,iel)-vsph(3))**2
+        rad = sqrt(rr)
+
+        rtarget = r1
+        do ilv=1,(Nlv+1)
+          ratio = real(ilv-1)/real(Nlv)
+          rmid = r1*(1.0-ratio) + r2*ratio
+          if (abs(rad-rmid).lt.rdel) rtarget = rmid
+        enddo
+
+        ratio = rtarget/rad
+
+        xc(i,iel) = xc(i,iel)*ratio
+        yc(i,iel) = yc(i,iel)*ratio
+        zc(i,iel) = zc(i,iel)*ratio
+      enddo
+      enddo
+
+      ! set 's' curved side + set CBC here
+      tol = 1e-8
+      do iel=1,nelt
+      do ifc=1,2*ldim
+         cbc(ifc,iel,1) = 'E  '
+         cbc(ifc,iel,2) = 'E  '
+
+         rmin=1e10
+         rmax=-1e10
+         do i=1,4
+            iv = iftoiv(i,ifc)
+            rr  = (xc(iv,iel)-vsph(1))**2 
+     $          + (yc(iv,iel)-vsph(2))**2 
+     $          + (zc(iv,iel)-vsph(3))**2
+            rad = sqrt(rr)            
+            rmin= min(rmin,rad)
+            rmax= max(rmax,rad)
+         enddo
+         rmid = (rmin+rmax)*0.5
+         if (abs(rmax-rmin).le.tol) then ! on sphere
+            ccurve(ifc,iel) = 's'
+            curve(1,ifc,iel) = vsph(1)
+            curve(2,ifc,iel) = vsph(2)
+            curve(3,ifc,iel) = vsph(3)
+            curve(4,ifc,iel) = rmid
+         endif
+         if (abs(rmid-r1).le.tol) cbc(ifc,iel,1) = 'S  ' ! inner
+         if (abs(rmid-r2).le.tol) cbc(ifc,iel,1) = 'O  ' ! outer
+      enddo
+      enddo
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usr_extrude_pj(xf_o,yf_o,zf_o,xf_i,yf_i,zf_i,igeo)
+      implicit none
+      include 'SIZE'
+      real xf_o(1),yf_o(1),zf_o(1)
+      real xf_i(1),yf_i(1),zf_i(1)
+      integer igeo
+          
+c     Fill this subroutine for the extrusion
+        
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat2
+      include 'SIZE'
+      include 'TOTAL'
+
+      ! Step 1: backup original cbc from mesh
+      call rfn_backup_boundary_id(1)
+
+      ! Step 2: Set cbc for refine (if needed)
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat3
+      include 'SIZE'
+      include 'TOTAL'
+c
+      return
+      end
+c-----------------------------------------------------------------------
+
