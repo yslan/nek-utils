@@ -37,6 +37,7 @@ c-----------------------------------------------------------------------
       call izero(ie_ref,lelv)
       call ifill(ie_ref,5,nelv)         ! no rotation
       
+      call rfn_set_em_type(em_type)     ! for cht
       call rfn_bak_nelg(ie_ref,4,Ncut)  ! bak nel, set nel_lv
       call rfn_chk_Ncut(Ncut,4)         ! also chk size (lelg,lelv)
       call rfn_set_nel_lv_shift         ! prepare new element id offset
@@ -59,6 +60,8 @@ c-----------------------------------------------------------------------
       else
         call rfn_rotate3d_out(ie_ref)
       endif
+
+      call rfn_sort_tmesh               ! put solid at the end
 
       if (nid.eq.0) then
         write(*,26)'rfn SSPLIT END,  E_new=',nelgv
@@ -287,6 +290,153 @@ c     Initialize global variables
         enddo
       enddo
 
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine rfn_set_em_type(em_type)
+      implicit none
+      include 'SIZE'
+      integer em_type(lelt),e
+
+      call izero(em_type,lelt)
+
+      do e=1,nelv
+        em_type(e) = 1
+      enddo
+      do e=nelv+1,nelt
+        em_type(e) = 2
+      enddo
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine rfn_sort_tmesh
+c     input a mesh, put solid at the end
+c     solid e has em_type(e)=2
+      implicit none
+      include 'SIZE'
+      include 'TOTAL'
+      include 'REFINE'
+
+      integer e,f,enew,eg,nxyz,ie_ref(lelt),wk(lelg)
+      integer nelv_chk, nelt_chk, nelgv_chk, nelgt_chk, iglsum
+      integer nelv_shift, nels_shift, igl_running_sum
+
+      integer*8 vertex,i8glmax
+      common /ivrtx/ vertex ((2**ldim)*lelt) ! write only
+
+      nxyz = lx1*ly1*lz1
+
+      nelt_chk = 0
+      nelv_chk = 0
+      do e=1,nelt
+        if (em_type(e).eq.1) then
+          nelt_chk = nelt_chk + 1
+          nelv_chk = nelv_chk + 1
+        elseif (em_type(e).eq.2) then
+          nelt_chk = nelt_chk + 1
+        elseif (em_type(e).eq.0) then
+          call exitti('em_type is unset for e$',e)
+        endif
+      enddo
+
+      nelgv_chk = iglsum(nelv_chk,1)
+      nelgt_chk = iglsum(nelt_chk,1)
+
+      if (nelv.ne.nelv_chk.OR.nelt.ne.nelt_chk.OR.
+     $    nelgv.ne.nelgv_chk.OR.nelgt.ne.nelgt_chk) then
+        if (nio.eq.0) write(*,*)'Err: rfn em_type mismatched nel'
+     $                         ,nelv,nelv_chk,nelgv,nelgv_chk
+     $                         ,nelt,nelt_chk,nelgt,nelgt_chk
+        call exitt
+      endif
+
+      if (nelgv.eq.nelgt) return
+
+      ! backup to work array
+      call izero(ie_ref,lelv)
+      if (ldim.eq.2) then
+        call ifill(ie_ref,1,nelv)         ! no rotation
+        call rfn_rotate2d_in(ie_ref)
+      else
+        call ifill(ie_ref,5,nelv)         ! no rotation
+        call rfn_rotate3d_in(ie_ref)
+      endif
+
+      ! copy back with  fluid first
+      enew=0
+      do e=1,nelt
+      if (em_type(e).eq.1) then
+
+        enew=enew+1
+
+        do f=1,2*ldim
+           boundaryID(f,enew)   = bID_wk(f,e,1)
+           bID_bkup  (f,enew,1) = bID_wk(f,e,2)
+           cbc       (f,enew,1) = cbc_wk(f,e,1)
+           cbc_bkup  (f,enew,1) = cbc_wk(f,e,2)
+           call copy(bc(1,f,enew,1), bc_wk(1,f,e,1), 5)
+           call copy(bc(1,f,enew,2), bc_wk(1,f,e,2), 5)
+        enddo
+
+        call copy(xm1(1,1,1,enew),xmc(1,1,1,e),nxyz)
+        call copy(ym1(1,1,1,enew),ymc(1,1,1,e),nxyz)
+        if (ldim.eq.3) call copy(zm1(1,1,1,enew),zmc(1,1,1,e),nxyz)
+
+        call i8copy(vertex((enew-1)*lxyzv+1),vertexc(1,1,1,e),lxyzv)
+
+      endif
+      enddo
+      ! solid later
+      do e=1,nelt
+      if (em_type(e).eq.2) then
+        enew=enew+1
+
+        do f=1,2*ldim
+           boundaryID(f,enew)   = bID_wk(f,e,1)
+           bID_bkup  (f,enew,1) = bID_wk(f,e,2)
+           cbc       (f,enew,1) = cbc_wk(f,e,1)
+           cbc_bkup  (f,enew,1) = cbc_wk(f,e,2)
+           call copy(bc(1,f,enew,1), bc_wk(1,f,e,1), 5)
+           call copy(bc(1,f,enew,2), bc_wk(1,f,e,2), 5)
+        enddo
+
+        call copy(xm1(1,1,1,enew),xmc(1,1,1,e),nxyz)
+        call copy(ym1(1,1,1,enew),ymc(1,1,1,e),nxyz)
+        if (ldim.eq.3) call copy(zm1(1,1,1,enew),zmc(1,1,1,e),nxyz)
+
+        call i8copy(vertex((enew-1)*lxyzv+1),vertexc(1,1,1,e),lxyzv)
+
+      endif
+      enddo
+        
+      ! TODO get shift from running accumu
+      
+      nelv_shift = igl_running_sum(nelv)
+      nels_shift = igl_running_sum(nelt-nelv)
+
+      ! reconstruct lglel and gllel, etc
+      do e=1,nelgt
+        gllel(e) = 0
+        gllnid(e) = 0
+      enddo
+      
+      do e=1,nelv
+        eg = nelv_shift + e
+        lglel(e) = eg
+        gllel(eg) = e
+        gllnid(eg) = nid
+      enddo
+      do e=nelv+1,nelt
+        eg = nelgv + nels_shift + e
+        lglel(e) = eg
+        gllel(eg) = e
+        gllnid(eg) = nid
+      enddo
+
+      call igop(gllel,wk,'+  ',nelgt)
+      call igop(gllnid,wk,'+  ',nelgt)
+      
       return
       end
 c-----------------------------------------------------------------------

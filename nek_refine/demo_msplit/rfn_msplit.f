@@ -100,14 +100,22 @@ c     (Ncut+1)^2 elements. The vertical direction remains the same.
 
             ! vtx ! TODO
 
+            ! cht
+            em_type(e1) = em_type(e)
+
           endif
 
         enddo
         enddo
         enddo
 
-        nelv = nelv + Nnew_p_e
-        nelt = nelt + Nnew_p_e
+        ! TODO: need to check em_type is initialized?
+        if (em_type(enow).eq.1) then
+          nelv = nelv + Nnew_p_e
+          nelt = nelt + Nnew_p_e
+        elseif (em_type(enow).eq.2) then
+          nelt = nelt + Nnew_p_e
+        endif
 
       enddo
 

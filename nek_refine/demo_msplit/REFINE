@@ -23,14 +23,15 @@ c     Work arrays
      $      , nelv0,nelt0                 ! nelv of the original mesh
      $      , nel_lv                      ! number of element on bdry within rank
      $      , nelgv0,nelgt0               ! nelgv of the original mesh
-     $      , nelg_lv                    ! total number of elements on bdry
+     $      , nelg_lv                     ! total number of elements on bdry
      $      , nel_lv_shift                ! accumulated number of elements on bdry (from rank0 to current)
      $      , icbc_bkup(2)                ! status of cbc backup slots
      $      , bID_wk(6,lelt,2)            ! alternative for cbc
      $      , bID_bkup(6,lelt,2)          ! alternative for cbc
+     $      , em_type(lelt)               ! 1=fluid mesh, 2=solid mesh
       common /iREFINE/ ie_ref_wk,nelv0,nelt0,nel_lv
      $               , nelgv0,nelgt0,nelg_lv,nel_lv_shift
-     $               , icbc_bkup
+     $               , icbc_bkup,em_type
       data icbc_bkup /0,0/
 
       character*3 cbc_wk(6,lelt,2)        ! rotated copy of cbc

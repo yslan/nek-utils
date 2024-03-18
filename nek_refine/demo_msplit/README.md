@@ -71,3 +71,4 @@ In userdat, we repair the mesh onto high-order sphere surface and we assign the 
   The surface has 9x elements and the radical direction is 3x.    
   <img src="img3.png" width="400"/>
 
+This should support cht (need tests)
