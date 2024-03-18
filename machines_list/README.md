@@ -1,16 +1,17 @@
 # Machines List
 
-My collection of the toys with the configuration/instruction/doc for running Nek5000/NekRS, including scripts, modules and shortcuts.
+My collection of the toys with the configuration/instruction/doc for running Nek5000/NekRS, including modules list, submit scripts, and shortcuts.
 
 Disclaimer:       
-- Using scripts from a stranger is dangerous. Use them at your own risk.   
-- This is, and will always be, under construction.
+- Using scripts from a stranger is dangerous. **Use them at your own risk!**   
+- This is, and will always be, under construction.    
   Those scripts might be out-dated. However, it should still work with minimal adjustment unless the machine has gone through a big upgrade.      
   Please feel free contact me for any issues or if you find new changes.    
 
 - This is simply a note for special machines, NOT a general guide to build NekRS.    
+  Please don't simply copy whatever in the code blocks to terminal.      
 
-Credits to all developers and users who built, modified, fixed, refined, debugged, and used those scripts. 
+Credits to all developers and users who built, modified, refined, debugged, fixed, and used those scripts. 
 
 
 ### Naming rules (if present...)
@@ -23,8 +24,10 @@ Credits to all developers and users who built, modified, fixed, refined, debugge
   `buildonly`: used to submit the build-only job         
   `ngpu`: instead of running a full node, this enables user to run the target #gpu     
   `v23`: version v23    
+  `nn`: neknek
+  `pf`: profiling
 
-nrsqsub_<machine>
+nrsqsub_<machine>    
 nekqsub_<machine>
 
 
