@@ -1858,6 +1858,14 @@ c     Set up TEMPORARY value for NFIELD - NFLDT
          ENDIF
  1200 CONTINUE
 
+      DO 100 IFIELD=MFIELD,nfldt+(LDIMT-1 - NPSCAL)
+         IF (IFTMSH(IFIELD)) THEN
+             NELFLD(IFIELD) = NELT
+         ELSE
+             NELFLD(IFIELD) = NELV
+         ENDIF
+ 100  CONTINUE
+
 
       ! set lglel,gllel,gllnid for new e
       do e=nelgv0+1,nelgv
