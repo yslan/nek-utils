@@ -153,10 +153,10 @@ echo "cat \$PBS_NODEFILE" >> $SFILE
 echo "module use /soft/modulefiles" >> $SFILE
 echo "module use /opt/cray/pe/lmod/modulefiles/mix_compilers" >> $SFILE
 echo "module load libfabric" >> $SFILE
-echo "module load cpe-cuda" >> $SFILE
 echo "module load PrgEnv-gnu" >> $SFILE
 echo "module load nvhpc-mixed" >> $SFILE
-echo "module load cmake" >> $SFILE
+echo "module load craype-x86-milan craype-accel-nvidia80" >> $SFILE
+echo "module load spack-pe-base cmake" >> $SFILE
 echo "module list" >> $SFILE
 
 echo "nvidia-smi" >> $SFILE
@@ -180,8 +180,7 @@ echo "export FI_OFI_RXM_RX_SIZE=32768" >> $SFILE # >=lelt, large mpi-messsage fo
 #echo "export FI_CXI_RX_MATCH_MODE=hybrid" >> $SFILE
 
 # Known issues after ss11 upgrade
-echo "export LD_PRELOAD=/opt/cray/pe/gcc/11.2.0/snos/lib64/libstdc++.so.6" >> $SFILE
-echo "ldd $bin" >>$SFILE
+echo "LD_PRELOAD=/opt/cray/pe/gcc/12.2.0/snos/lib64/libstdc++.so.6" >> $SFILE
 
 CMD=.lhelper
 echo "#!/bin/bash" >$CMD
