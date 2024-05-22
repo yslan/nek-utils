@@ -8,10 +8,12 @@ Useful links
 
 ## Aurora
 
-script `nrsqsub_aurora`
+02/25/24: This is outdated. See nrsqsub_aurora script in v24.
+
+script `nrsqsub_aurora` 
 
 - version: v24.0.1
-- last update: 02/21/24
+- last update: 02/21/24 
 - notable changes (diff from source code)
   - massively clean up
   - Fix s.bin, don't remove cache everytime
@@ -50,13 +52,14 @@ script `nrsqsub_aurora`
 
 scripts `nrsqsub_polaris`
 
-- version: v23.1 (repo/next: commit 11/02/23)
-- last update: 03/09/24
+- (TODO) version: v23.1 (repo/next: commit 11/02/23)
+- version: v23 (repo/next: commit 11/02/23)
+- last update: 04/25/24
 - notable changes    
 
   - Add `NEKRS_DFLOAT_FP32` and `NEKRS_BUILD_ONLY`
   - Add `FI_CXI_RX_MATCH_MODE=hybrid`
-  - `LD_PRELOAD=/opt/cray/pe/gcc/11.2.0/snos/lib64/libstdc++.so.6`
+  - `LD_PRELOAD=/opt/cray/pe/gcc/12.2.0/snos/lib64/libstdc++.so.6`
   - print nodelist
   
 
@@ -65,23 +68,23 @@ scripts `nrsqsub_polaris`
   module use /soft/modulefiles
   module use /opt/cray/pe/lmod/modulefiles/mix_compilers
   
+  module use /soft/modulefiles
+  module use /opt/cray/pe/lmod/modulefiles/mix_compilers
   module load libfabric
-  module load cpe-cuda
   module load PrgEnv-gnu
-  #module load gcc/11.2.0 # manually load this if you find PrgEnv-gnu load gcc-12
   module load nvhpc-mixed
-  module load cmake
+  module load craype-x86-milan craype-accel-nvidia80
+  module load spack-pe-base cmake
   
   module list
   export MPICH_GPU_SUPPORT_ENABLED=1
 
-  # Currently Loaded Modules:
-  #   1) craype-x86-rome          7) cpe-cuda/23.03     13) cray-libpals/1.2.11
-  #   2) craype-network-ofi       8) craype/2.7.20      14) PrgEnv-gnu/8.3.3
-  #   3) craype-accel-nvidia80    9) cray-dsmml/0.2.2   15) nvhpc-mixed/22.11
-  #   4) libfabric/1.15.2.0      10) cray-mpich/8.1.25  16) cmake/3.23.2
-  #   5) gcc/11.2.0              11) cray-pmi/6.1.10
-  #   6) perftools-base/23.03.0  12) cray-pals/1.2.11
+  #Currently Loaded Modules:
+  #  1) craype-network-ofi       6) craype/2.7.30      11) cray-libpals/1.3.4      16) curl/8.4.0-2ztev25
+  #  2) perftools-base/23.12.0   7) cray-dsmml/0.2.2   12) PrgEnv-gnu/8.5.0        17) cmake/3.27.7
+  #  3) darshan/3.4.4            8) cray-mpich/8.1.28  13) nvhpc-mixed/23.9        18) craype-x86-milan
+  #  4) libfabric/1.15.2.0       9) cray-pmi/6.1.13    14) spack-pe-base/0.6.1     19) craype-accel-nvidia80
+  #  5) gcc-native/12.3         10) cray-pals/1.3.4    15) nghttp2/1.57.0-ciat5hu
   ```
 
 - Compile
@@ -99,14 +102,12 @@ scripts `nrsqsub_polaris`
   However, there is still a known issues that libc++ is not under the right path.   
   Currently, it can be bypassed by
   ```
-  LD_PRELOAD=/opt/cray/pe/gcc/11.2.0/snos/lib64/libstdc++.so.6
+  LD_PRELOAD=/opt/cray/pe/gcc/12.2.0/snos/lib64/libstdc++.so.6
   ``` 
   See update at here: ![Polaris known issue](https://docs.alcf.anl.gov/polaris/known-issues/)
 
-
-
-
-
+- note hypre
+  HYPRE in v23 doesn't support cuda 12, Turn `-DENABLE_HYPRE_GPU=off` (and `DENABLE_AMGX=off`) for now
 
 
 
