@@ -65,6 +65,9 @@ I suggest to use the latest/release version from repositories. The submodules mi
   - __Usage__: [repo] MATLAB scripts
   - __TODO__: See the README
   
+- `OneSphere/`:
+  - __Main__: mesh generator for single pebble
+  - __Usage__: [repo] MATLAB scripts
 
 ## TODO:
 - mesh smoother   
