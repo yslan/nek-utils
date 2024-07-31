@@ -13,3 +13,6 @@
 [submodule "nekrsExamples"]
 	path = nekrsExamples
 	url = https://github.com/yslan/nekrsExamples
+[submodule "oneSphere"]
+   path = OneSphere
+   url = https://github.com/yslan/OneSphere
