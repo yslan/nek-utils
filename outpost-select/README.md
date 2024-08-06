@@ -1,5 +1,7 @@
 # `outpost` for selected-elements
 
+**Update (08/06/24): This feature has been implemented in Nek5000 since this [commit](https://github.com/Nek5000/Nek5000/commit/8c41340edc33d2f6f9f8c4b3405121d3d57dd4a5)**
+
 Most of the time, we only visualize a small portion of data from a big simulation.   
 For example, 
 - Inspect the location where CFL is large.
