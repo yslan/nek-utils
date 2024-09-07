@@ -1,4 +1,4 @@
-## Extra `.f` files 
+## Extra files 
 
 I will (try to) collect my files here. The rule is, if I use it more than three times (and if I remember), I will save it here.
 These will be isolated tiny functions that I think it won't go into the main repo.  
@@ -30,3 +30,10 @@ Please create issues for questions or bugs. Happy debugging.
    Nek repo uses this https://github.com/Nek5000/Nek5000/pull/787 to print BCs which will give you UNKNOWN when the BC is not in the table.  This one is more versatile. 
 
 - `flip_elements/`: flip from lhs to rhs. for wired wrap with mirror direction
+
+- `change_time.py:
+
+   This change the time in header from atime to timestep*1.0 in order to bypass Paraview's struggle of reading nonincreasing time / timestep.
+   ```
+   python3 ./change_time.py avgeddy.nek5000
+   ```
