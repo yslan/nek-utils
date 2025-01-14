@@ -27,7 +27,7 @@ done
 : ${GUI:=1}
 if [ $GUI == 0 ]; then
   if ! command -v xvfb-run 2>&1 >/dev/null; then
-    echo "A NO-GUI mode requires Xvfb (xvfb-run)!"
+    echo "A NO-GUI mode requires xvfb-run (Xvfb)!"
     exit 1
   fi
   pretex="xvfb-run "$pretex
