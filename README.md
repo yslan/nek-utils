@@ -72,6 +72,10 @@ I suggest to use the latest/release version from repositories. The submodules mi
 - `nek_mkmsh/`:
   - __Main__: meshing script template
   - __Usage__: [script] to manipulate nek tool to generate mesh on servers 
+
+- `nek_rotate/`:
+  - __Main__: rotate the mesh based from one vector to another
+  - __Usage__: NekRS example but all subroutine is in usrdat2
   
 
 ## TODO:
@@ -83,4 +87,5 @@ I suggest to use the latest/release version from repositories. The submodules mi
 - gallery and showcases
 - SEM codes (both MATLAB and Python)
 - external storage for large files
+- numbering the case folder to have desired order
 
