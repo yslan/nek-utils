@@ -1,0 +1,300 @@
+c-----------------------------------------------------------------------
+      subroutine userchk
+
+      include 'SIZE'
+      include 'TOTAL'
+      real faceI_nx, faceI_ny, faceI_nz
+      real faceO_nx, faceO_ny, faceO_nz
+      real newDir_x, newDir_y, newDir_z
+      
+c      return
+
+      if (istep.eq.0) then
+
+      ! identify the orientation
+      call get_surface_normal(1, faceI_nx, faceI_ny, faceI_nz, 'bfr nI')
+      call get_surface_normal(2, faceO_nx, faceO_ny, faceO_nz, 'bfr nO')
+      if (nio.eq.0) write(*,*)'chk volume bfr',voltm1
+
+      ifxyo = .true.
+      ifvo = .true.
+      ifpo = .false.
+      ifto = .false.
+      call outpost(vx,vy,vz,pr,t,'aaa')
+
+      ! rotate to target orientation, outward normal
+      newDir_x = 0.0
+      newDir_y = -1.0
+      newDir_z = -1.0
+      call rotate_mesh(faceI_nx, faceI_ny, faceI_nz
+     $                ,newDir_x, newDir_y, newDir_z, .true.)
+
+
+      ! post chk
+      call fix_geom
+      call geom_reset(2)
+
+      call get_surface_normal(1, faceI_nx, faceI_ny, faceI_nz, 'aft nI')
+      call get_surface_normal(2, faceO_nx, faceO_ny, faceO_nz, 'aft nO')
+      if (nio.eq.0) write(*,*)'chk volume aft',voltm1
+
+      call outpost(vx,vy,vz,pr,t,'bbb')
+
+      endif
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine get_surface_normal(bid, nx, ny, nz, s6)
+      implicit none
+      include 'SIZE'
+      include 'GEOM'
+      character*6 s6
+      integer bid, ia, e, f, ix,iy,iz,kx1,kx2,ky1,ky2,kz1,kz2
+      real nx,ny,nz, aa, atot
+
+      real xmin,xmax,xavg
+      real ymin,ymax,yavg
+      real zmin,zmax,zavg
+      real glmin,glmax,glsum
+
+      xmin = 1E30
+      xmax = -1E30
+      xavg = 0.0
+      ymin = 1E30
+      ymax = -1E30
+      yavg = 0.0
+      zmin = 1E30
+      zmax = -1E30
+      zavg = 0.0
+      atot = 0.0
+
+      do e=1,nelt
+      do f=1,2*ldim
+         if (boundaryID(f,e).eq.bid) then
+
+         ia = 0
+         call facind(kx1,kx2,ky1,ky2,kz1,kz2,lx1,ly1,lz1,f)
+         do iz=kz1,kz2
+         do iy=ky1,ky2
+         do ix=kx1,kx2
+            ia = ia + 1
+
+            nx = unx(ia,1,f,e)
+            ny = uny(ia,1,f,e)
+            nz = unz(ia,1,f,e)
+            aa = area(ia,1,f,e)
+
+            xmin = min(xmin, nx)
+            xmax = max(xmax, nx)
+            xavg = xavg + nx * aa
+
+            ymin = min(ymin, ny)
+            ymax = max(ymax, ny)
+            yavg = yavg + ny * aa
+
+            zmin = min(zmin, nz)
+            zmax = max(zmax, nz)
+            zavg = zavg + nz * aa
+
+            atot = atot + aa
+
+         enddo
+         enddo
+         enddo
+
+         endif
+      enddo
+      enddo
+
+      atot = glsum(atot,1)
+
+      xmin = glmin(xmin,1)
+      xmax = glmax(xmax,1)
+      xavg = glsum(xavg,1) / atot
+
+      ymin = glmin(ymin,1)
+      ymax = glmax(ymax,1)
+      yavg = glsum(yavg,1) / atot
+
+      zmin = glmin(zmin,1)
+      zmax = glmax(zmax,1)
+      zavg = glsum(zavg,1) / atot
+
+      nx = xavg
+      ny = yavg
+      nz = zavg
+
+      if (nio.eq.0) then
+         write(*,33) s6,bid,'x',xmin,xmax,xavg
+         write(*,33) s6,bid,'y',ymin,ymax,yavg
+         write(*,33) s6,bid,'z',zmin,zmax,zavg
+      endif
+   33 format('chk-normal ',a,' bid=',i3,' nml-',a,3e14.6)
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine rotate_mesh(aax,aay,aaz,bbx,bby,bbz,if_updvel)
+      implicit none
+      include 'SIZE'
+      include 'GEOM'
+      include 'SOLN'
+      integer i
+      logical if_updvel
+      real aax,aay,aaz,bbx,bby,bbz
+      real kx,ky,kz,xx,yy,zz,sin_theta,cos_theta,k_dot_v,tmp
+
+      tmp = sqrt(aax*aax+aay*aay+aaz*aaz)
+      aax = aax / tmp
+      aay = aay / tmp
+      aaz = aaz / tmp
+
+      tmp = sqrt(bbx*bbx+bby*bby+bbz*bbz)
+      bbx = bbx / tmp
+      bby = bby / tmp
+      bbz = bbz / tmp
+
+      ! k = a cross b
+      kx = aay*bbz - aaz*bby
+      ky = aaz*bbx - aax*bbz
+      kz = aax*bby - aay*bbx
+
+      tmp = sqrt(kx*kx+ky*ky+kz*kz)
+      kx = kx / tmp
+      ky = ky / tmp
+      kz = kz / tmp
+
+      cos_theta = aax*bbx+aay*bby+aaz*bbz
+      sin_theta = tmp
+
+      do i=1,lx1*ly1*lz1*nelt
+         ! vec v
+         xx = xm1(i,1,1,1)
+         yy = ym1(i,1,1,1)
+         zz = zm1(i,1,1,1)
+
+         k_dot_v = kx*xx + ky*yy + kz*zz
+         tmp = k_dot_v * (1.0 - cos_theta)
+
+         ! V cos(th) + (k cross v)*sin(th) + k (k dot v) (1-cos(th))
+         xm1(i,1,1,1) = xx*cos_theta + (ky*zz-kz*yy)*sin_theta + kx*tmp
+         ym1(i,1,1,1) = yy*cos_theta + (kz*xx-kx*zz)*sin_theta + ky*tmp
+         zm1(i,1,1,1) = zz*cos_theta + (kx*yy-ky*xx)*sin_theta + kz*tmp
+      enddo
+
+      if (if_updvel) then
+      do i=1,lx1*ly1*lz1*nelv
+         ! vec v
+         xx = vx(i,1,1,1)
+         yy = vy(i,1,1,1)
+         zz = vz(i,1,1,1)
+
+         k_dot_v = kx*xx + ky*yy + kz*zz
+         tmp = k_dot_v * (1.0 - cos_theta)
+
+         ! V cos(th) + (k cross v)*sin(th) + k (k dot v) (1-cos(th))
+         vx(i,1,1,1) = xx*cos_theta + (ky*zz-kz*yy)*sin_theta + kx*tmp
+         vy(i,1,1,1) = yy*cos_theta + (kz*xx-kx*zz)*sin_theta + ky*tmp
+         vz(i,1,1,1) = zz*cos_theta + (kx*yy-ky*xx)*sin_theta + kz*tmp
+      enddo
+      endif
+
+      if (nio.eq.0) then
+         write(*,*) 'rot-msh from',aax,aay,aaz
+     $            , 'to',bbx,bby,bbz,if_updvel
+         write(*,*) 'rot-msh k=',kx,ky,kz,' theta=',sin_theta,cos_theta
+      endif
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine useric (ix,iy,iz,ieg)
+
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      include 'CASEDATA'
+
+      xr = x/0.5
+      yr = y/0.5
+      rr = xr*xr + yr*yr
+      if (rr.gt.0) rr=sqrt(rr)
+      th = atan2(y,x)
+      zo = 2*pi*z/ZLENGTH
+
+      uz = 6.*(1-rr**6)/5.
+
+c     Assign a wiggly shear layer near the wall
+      amp_z    = 0.35  ! Fraction of 2pi for z-based phase modification
+      freq_z   = 4     ! Number of wiggles in axial- (z-) direction
+      freq_t   = 9     ! Frequency of wiggles in azimuthal-direction
+
+      amp_tht  = 5     ! Amplification factor for clipped sine function
+      amp_clip = 0.2   ! Clipped amplitude
+
+      blt      = 0.07  ! Fraction of boundary layer with momentum deficit
+
+      phase_z = amp_z*(2*pi)*sin(freq_z*zo)
+
+      arg_tht = freq_t*th + phase_z
+      amp_sin = 5*sin(arg_tht)
+      if (amp_sin.gt. amp_clip) amp_sin =  amp_clip
+      if (amp_sin.lt.-amp_clip) amp_sin = -amp_clip
+
+      if (rr.gt.(1-blt)) uz = uz + amp_sin
+
+c     Quick P-independent randomizer
+      big  = 1.e3*ieg + 1.e2*ix + 1.e1*iy + 1.e0*iz
+      rand = sin(big)
+
+      ux   = .05*rand*rand
+      uy   = .10*rand*rand*rand
+      uz   = uz + .01*rand
+
+      temp = 0.
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat2
+
+      include 'SIZE'
+      include 'TOTAL'
+      include 'CASEDATA'
+
+      common /scnrs/ sc_nrs(10)
+      real                sc_nrs
+      
+      ZLENGTH = sc_nrs(1)
+      NSLABS = sc_nrs(2)
+      NELSLAB = sc_nrs(3)
+
+      z0 = 0.0
+      z1 = ZLENGTH
+
+      call rescale_x(zm1,z0,z1)
+
+      do iel=1,nelt
+      do ifc=1,2*ndim
+         if (cbc(ifc,iel,1) .eq. 'v  ') boundaryID(ifc,iel) = 1
+         if (cbc(ifc,iel,1) .eq. 'o  ') boundaryID(ifc,iel) = 2
+         if (cbc(ifc,iel,1) .eq. 'W  ') boundaryID(ifc,iel) = 3
+      enddo
+      enddo
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat3
+
+      include 'SIZE'
+      include 'TOTAL'
+
+      return
+      end
