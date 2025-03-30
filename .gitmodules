@@ -16,3 +16,6 @@
 [submodule "oneSphere"]
    path = OneSphere
    url = https://github.com/yslan/OneSphere
+[submodule "nekIO"]
+	path = nekIO
+	url = https://github.com/yslan/nekIO.git

@@ -14,8 +14,8 @@ There is still an ongoing s11 performance related issues.
   # project storate (slow)
   /project/<project_id>  
 
-  # project scratch (recommended)
-  /project/<project_id>
+  # work
+  /work/hdd/<project id>
   ```
 
 ### NekRS v23.1.1
@@ -48,6 +48,29 @@ script `nrsqsub_delta.openmpi`
   ```
 
 ### NekRS v24
+
+script `nrsqsub_delta.v24pre
+
+- last update: 03/29/25 (repo/next)
+- env
+  ```
+  module reset
+  module load cmake
+  module load gcc
+  module load openmpi/5.0.5+cuda
+
+  module list
+  #export NEKRS_HOME=/work/hdd/bcla/ylan/.local/nekrs_repo_next032925
+  ```
+
+- config
+  ```
+  : ${NEKRS_INSTALL_DIR:=/work/hdd/bcla/ylan/.local/nekrs_repo_next032925}
+  CC=mpicc CXX=mpic++ FC=mpif77 ./build.sh \
+     -DCMAKE_INSTALL_PREFIX="${NEKRS_INSTALL_DIR}" \
+     -DOCCA_ENABLE_HIP=off \
+     -DOCCA_ENABLE_DPCPP=off
+  ```
 
 ### NekRS + Ascent
 

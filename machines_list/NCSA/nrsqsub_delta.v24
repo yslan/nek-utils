@@ -1,0 +1,81 @@
+#!/bin/bash
+set -e
+
+: ${PROJ_ID:="bcla-delta-gpu"} # xxxx-delta-gpu where "xxxx" is yorur project id
+: ${QUEUE:="gpuA100x4"}
+
+source $NEKRS_HOME/bin/nrsqsub_utils
+setup $# 1
+
+gpu_per_node=4
+cores_per_numa=16
+let nn=$nodes*$gpu_per_node
+let ntasks=nn
+
+backend=CUDA
+NEKRS_GPU_MPI=1
+NEKRS_CACHE_BCAST=0 # need to apply for /work/nvme
+
+chk_case $ntasks # comment out chk for eddyNekNek
+
+
+# sbatch
+SFILE=s.bin
+echo "#!/bin/bash" > $SFILE
+echo "#SBATCH --account=$PROJ_ID" >>$SFILE
+echo "#SBATCH --job-name=$jobname" >>$SFILE
+echo "#SBATCH -o %x-%j.out" >>$SFILE
+echo "#SBATCH --time=${time}:00" >>$SFILE
+echo "#SBATCH --nodes=$qnodes" >>$SFILE
+echo "#SBATCH --partition=$QUEUE" >>$SFILE
+# for debugger: https://docs.ncsa.illinois.edu/systems/delta/en/latest/user_guide/debug_perf.html#debugging-and-performance-analysis
+#echo "#SBATCH --constraint=\"perf,nvperf\"" >>$SFILE
+echo "#SBATCH --ntasks-per-node=$gpu_per_node" >>$SFILE
+echo "#SBATCH --exclusive" >>$SFILE
+echo "#SBATCH --mem=208G" >>$SFILE
+echo "#SBATCH --ntasks-per-node=$gpu_per_node" >>$SFILE
+echo "#SBATCH --cpus-per-task=$cores_per_numa" >>$SFILE
+echo "#SBATCH --gpu-bind=closest" >> $SFILE
+echo "#SBATCH --gpus-per-node=$gpu_per_node" >> $SFILE
+
+echo "module load cmake" >>$SFILE
+echo "module load gcc" >>$SFILE
+echo "module load openmpi/5.0.5+cuda" >>$SFILE
+echo "module list" >>$SFILE
+
+echo "nvidia-smi" >> $SFILE
+echo "nvcc --version" >>$SFILE
+echo "cmake --version" >>$SFILE
+echo "which mpicc" >>$SFILE
+echo "ldd $bin" >>$SFILE
+
+echo "ulimit -s unlimited " >>$SFILE
+
+echo "export NEKRS_HOME=$NEKRS_HOME" >>$SFILE
+echo "export NEKRS_GPU_MPI=$NEKRS_GPU_MPI" >>$SFILE
+
+echo "export NEKRS_CACHE_BCAST=$NEKRS_CACHE_BCAST" >>$SFILE
+echo "export NEKRS_LOCAL_TMP_DIR=/work/nvme" >>$SFILE
+
+echo "# Workaround for https://github.com/Nek5000/Nek5000/issues/759" >> $SFILE
+echo "export FI_OFI_RXM_RX_SIZE=32768" >> $SFILE
+
+if [ $RUN_ONLY -eq 0 ]; then
+  echo -e "\n# precompilation" >>$SFILE
+  echo "LANG=EN TZ=America/Chicago date" >>$SFILE
+  CMD_build="srun --ntasks=$gpu_per_node --nodes=1 --ntasks-per-node=$gpu_per_node --cpus-per-task=$cores_per_numa --gpus-per-node=$gpu_per_node $bin --setup \${case_tmp} --backend ${backend} $extra_args --build-only \$ntasks_tmp"
+  add_build_CMD "$SFILE" "$CMD_build" "$ntasks"
+fi
+
+if [ $BUILD_ONLY -eq 0 ]; then
+  link_neknek_logfile "$SFILE"
+  echo -e "\n# actual run" >>$SFILE
+  echo "LANG=EN TZ=America/Chicago date" >>$SFILE
+  echo "srun --ntasks=$ntasks --nodes=$nodes --ntasks-per-node=$gpu_per_node --cpus-per-task=$cores_per_numa --gpus-per-node=$gpu_per_node $bin --setup ${case} --backend ${backend} $extra_args"  >>$SFILE
+
+fi
+
+sbatch $SFILE
+
+# clean-up
+#rm -rf $SFILE $ROMIO_HINTS .lhelper
