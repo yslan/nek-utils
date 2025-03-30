@@ -49,7 +49,7 @@ script `nrsqsub_delta.openmpi`
 
 ### NekRS v24
 
-script `nrsqsub_delta.v24pre
+script `nrsqsub_delta.v24`
 
 - last update: 03/29/25 (repo/next)
 - env
@@ -57,7 +57,7 @@ script `nrsqsub_delta.v24pre
   module reset
   module load cmake
   module load gcc
-  module load openmpi/5.0.5+cuda
+  module load openmpi+cuda/4.1.5+cuda
 
   module list
   #export NEKRS_HOME=/work/hdd/bcla/ylan/.local/nekrs_repo_next032925
