@@ -54,12 +54,11 @@ scripts `nrsqsub_polaris`
 
 - (TODO) version: v23.1 (repo/next: commit 11/02/23)
 - version: v23 (repo/next: commit 11/02/23)
-- last update: 04/25/24
+- last update: 06/21/25
 - notable changes    
 
   - Add `NEKRS_DFLOAT_FP32` and `NEKRS_BUILD_ONLY`
   - Add `FI_CXI_RX_MATCH_MODE=hybrid`
-  - `LD_PRELOAD=/opt/cray/pe/gcc/12.2.0/snos/lib64/libstdc++.so.6`
   - print nodelist
   
 
@@ -67,47 +66,34 @@ scripts `nrsqsub_polaris`
   ```
   module use /soft/modulefiles
   module use /opt/cray/pe/lmod/modulefiles/mix_compilers
-  
-  module use /soft/modulefiles
-  module use /opt/cray/pe/lmod/modulefiles/mix_compilers
   module load libfabric
   module load PrgEnv-gnu
   module load nvhpc-mixed
   module load craype-x86-milan craype-accel-nvidia80
   module load spack-pe-base cmake
-  
+
   module list
   export MPICH_GPU_SUPPORT_ENABLED=1
 
-  #Currently Loaded Modules:
-  #  1) craype-network-ofi       6) craype/2.7.30      11) cray-libpals/1.3.4      16) curl/8.4.0-2ztev25
-  #  2) perftools-base/23.12.0   7) cray-dsmml/0.2.2   12) PrgEnv-gnu/8.5.0        17) cmake/3.27.7
-  #  3) darshan/3.4.4            8) cray-mpich/8.1.28  13) nvhpc-mixed/23.9        18) craype-x86-milan
-  #  4) libfabric/1.15.2.0       9) cray-pmi/6.1.13    14) spack-pe-base/0.6.1     19) craype-accel-nvidia80
-  #  5) gcc-native/12.3         10) cray-pals/1.3.4    15) nghttp2/1.57.0-ciat5hu
+  Currently Loaded Modules:
+    1) craype-network-ofi        7) craype/2.7.30       13) PrgEnv-gnu/8.5.0            19) nghttp2/1.57.0-zcqpkvo
+    2) perftools-base/23.12.0    8) cray-dsmml/0.2.2    14) nvhpc-mixed/23.9            20) curl/8.7.1-mrzub33
+    3) darshan/3.4.4             9) cray-mpich/8.1.28   15) craype-x86-milan            21) gmake/4.4.1
+    4) xalt/3.0.2-202408282050  10) cray-pmi/6.1.13     16) craype-accel-nvidia80       22) cmake/3.27.9
+    5) libfabric/1.15.2.0       11) cray-pals/1.3.4     17) spack-pe-base/0.8.1
+    6) gcc-native/12.3          12) cray-libpals/1.3.4  18) gcc-runtime/12.3.0-wfuxrgf
   ```
 
 - Compile
   ```
   CC=cc CXX=CC FC=ftn ./nrsconfig \
-   -DCMAKE_INSTALL_PREFIX=<your_install_path> 
+   -DCMAKE_INSTALL_PREFIX=<your_install_path> \
+   -DENABLE_AMGX=off -DENABLE_HYPRE_GPU=on
 
   # optional: 
   # -DENABLE_AMGX=on -DENABLE_HYPRE_GPU=on
   ```
 
-- note:      
-  Since ss11 upgrade, default compile was changed to gcc-12 which messes up with cuda version.  
-  Recently, they switch back to gcc-11.2 so the module list above works.
-  However, there is still a known issues that libc++ is not under the right path.   
-  Currently, it can be bypassed by
-  ```
-  LD_PRELOAD=/opt/cray/pe/gcc/12.2.0/snos/lib64/libstdc++.so.6
-  ``` 
-  See update at here: ![Polaris known issue](https://docs.alcf.anl.gov/polaris/known-issues/)
-
-- note hypre
-  HYPRE in v23 doesn't support cuda 12, Turn `-DENABLE_HYPRE_GPU=off` (and `DENABLE_AMGX=off`) for now
 
 
 
