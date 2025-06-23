@@ -928,7 +928,7 @@ c      offs0 = iHeaderSize + 4 + isize*nelgt
       nelB=nelB2
       call icopy(lglel,lglel2,lelt)
 
-      call mfo_write_hdr                     ! create element mapping +
+      call my_mfo_write_hdr                     ! create element mapping +
 
       nelgt=nelgt_bak
       nelt=nelt_bak
@@ -2008,137 +2008,137 @@ c         u8(1) = nel
       return
       end
 c-----------------------------------------------------------------------
-c      subroutine mfo_write_hdr          ! write hdr, byte key, els.
-c
-c      include 'SIZE'
-c      include 'SOLN'
-c      include 'INPUT'
-c      include 'PARALLEL'
-c      include 'RESTART'
-c      include 'TSTEP'
-c      real*4 test_pattern
-c      common /ctmp0/ lglist(0:lelt)
-c
-c      character*132 hdr
-c      integer*8 ioff
-c      logical if_press_mesh
-c
-c      call nekgsync()
-c      idum = 1
-c
-c      if(ifmpiio) then
-c        nfileoo = 1   ! all data into one file
-c        nelo = nelgt
-c      else
-c        nfileoo = nfileo
-c        if(nid.eq.pid0) then                ! how many elements to dump
-c          nelo = nelt
-c          do j = pid0+1,pid1
-c             mtype = j
-c             call csend(mtype,idum,4,j,0)   ! handshake
-c             call crecv(mtype,inelp,4)
-c             nelo = nelo + inelp
-c          enddo
-c        else
-c          mtype = nid
-c          call crecv(mtype,idum,4)          ! hand-shake
-c          call csend(mtype,nelt,4,pid0,0)   ! u4 :=: u8
-c        endif 
-c      endif
-c
-c      ierr = 0
-c      if(nid.eq.pid0) then
-c
-c      call blank(hdr,132)              ! write header
-c      call blank(rdcode1,10)
-c      i = 1
-c      IF (IFXYO) THEN
-c         rdcode1(i)='X'
-c         i = i + 1
-c      ENDIF
-c      IF (IFVO) THEN
-c         rdcode1(i)='U'
-c         i = i + 1
-c      ENDIF
-c      IF (IFPO) THEN
-c         rdcode1(i)='P'
-c         i = i + 1
-c      ENDIF
-c      IF (IFTO) THEN
-c         rdcode1(i)='T'
-c         i = i + 1
-c      ENDIF
-c      IF (LDIMT.GT.1) THEN
-c         NPSCALO = 0
-c         do k = 1,ldimt-1
-c           if(ifpsco(k)) NPSCALO = NPSCALO + 1
-c         enddo
-c         IF (NPSCALO.GT.0) THEN
-c            rdcode1(i) = 'S'
-c            WRITE(rdcode1(i+1),'(I1)') NPSCALO/10
-c            WRITE(rdcode1(i+2),'(I1)') NPSCALO-(NPSCALO/10)*10
-c         ENDIF
-c      ENDIF
-c
-cc     check pressure format
-c      if_press_mesh = .false.
-c      if (.not.ifsplit.and.if_full_pres) if_press_mesh = .true.
-c 
-c      write(hdr,1) wdsizo,nxo,nyo,nzo,nelo,nelgt,time,istep,fid0,nfileoo
-c     $            ,(rdcode1(i),i=1,10),p0th,if_press_mesh
-c    1 format('#std',1x,i1,1x,i2,1x,i2,1x,i2,1x,i10,1x,i10,1x,e20.13,
-c     &       1x,i9,1x,i6,1x,i6,1x,10a,1pe15.7,1x,l1)
-c
-c      test_pattern = 6.54321           ! write test pattern for byte swap
-c
-c      if(ifmpiio) then
-c        ! only rank0 (pid00) will write hdr + test_pattern
-c        call byte_write_mpi(hdr,iHeaderSize/4,pid00,ifh_mbyte,ierr)
-c        call byte_write_mpi(test_pattern,1,pid00,ifh_mbyte,ierr)
-c      else
-c        call byte_write(hdr,iHeaderSize/4,ierr)
-c        call byte_write(test_pattern,1,ierr)
-c      endif
-c
-c      endif
-c
-c      call err_chk(ierr,'Error writing header in mfo_write_hdr. $')
-c
-c      ! write global element numbering for this group
-c      if(nid.eq.pid0) then
-c        if(ifmpiio) then
-c          ioff = iHeaderSize + 4 + nelB*isize
-c          call byte_set_view (ioff,ifh_mbyte)
-c          call byte_write_mpi(lglel,nelt,-1,ifh_mbyte,ierr)
-c        else
-c          call byte_write(lglel,nelt,ierr)
-c        endif
-c
-c        do j = pid0+1,pid1
-c           mtype = j
-c           call csend(mtype,idum,4,j,0)   ! handshake
-c           len = 4*(lelt+1)
-c           call crecv(mtype,lglist,len)
-c           if(ierr.eq.0) then
-c             if(ifmpiio) then
-c              call byte_write_mpi(lglist(1),lglist(0),-1,ifh_mbyte,ierr)
-c             else
-c              call byte_write(lglist(1),lglist(0),ierr)
-c             endif
-c           endif
-c        enddo
-c      else
-c        mtype = nid
-c        call crecv(mtype,idum,4)          ! hand-shake
-c        
-c        lglist(0) = nelt
-c        call icopy(lglist(1),lglel,nelt)
-c
-c        len = 4*(nelt+1)
-c        call csend(mtype,lglist,len,pid0,0)  
-c      endif 
-c
-c      call err_chk(ierr,'Error writing global nums in mfo_write_hdr$')
-c      return
-c      end
-cc-----------------------------------------------------------------------
+      subroutine my_mfo_write_hdr          ! write hdr, byte key, els.
+
+      include 'SIZE'
+      include 'SOLN'
+      include 'INPUT'
+      include 'PARALLEL'
+      include 'RESTART'
+      include 'TSTEP'
+      real*4 test_pattern
+      common /ctmp0/ lglist(0:lelt)
+
+      character*132 hdr
+      integer*8 ioff
+      logical if_press_mesh
+
+      call nekgsync()
+      idum = 1
+
+      if(ifmpiio) then
+        nfileoo = 1   ! all data into one file
+        nelo = nelgt
+      else
+        nfileoo = nfileo
+        if(nid.eq.pid0) then                ! how many elements to dump
+          nelo = nelt
+          do j = pid0+1,pid1
+             mtype = j
+             call csend(mtype,idum,4,j,0)   ! handshake
+             call crecv(mtype,inelp,4)
+             nelo = nelo + inelp
+          enddo
+        else
+          mtype = nid
+          call crecv(mtype,idum,4)          ! hand-shake
+          call csend(mtype,nelt,4,pid0,0)   ! u4 :=: u8
+        endif 
+      endif
+
+      ierr = 0
+      if(nid.eq.pid0) then
+
+      call blank(hdr,132)              ! write header
+      call blank(rdcode1,10)
+      i = 1
+      IF (IFXYO) THEN
+         rdcode1(i)='X'
+         i = i + 1
+      ENDIF
+      IF (IFVO) THEN
+         rdcode1(i)='U'
+         i = i + 1
+      ENDIF
+      IF (IFPO) THEN
+         rdcode1(i)='P'
+         i = i + 1
+      ENDIF
+      IF (IFTO) THEN
+         rdcode1(i)='T'
+         i = i + 1
+      ENDIF
+      IF (LDIMT.GT.1) THEN
+         NPSCALO = 0
+         do k = 1,ldimt-1
+           if(ifpsco(k)) NPSCALO = NPSCALO + 1
+         enddo
+         IF (NPSCALO.GT.0) THEN
+            rdcode1(i) = 'S'
+            WRITE(rdcode1(i+1),'(I1)') NPSCALO/10
+            WRITE(rdcode1(i+2),'(I1)') NPSCALO-(NPSCALO/10)*10
+         ENDIF
+      ENDIF
+
+c     check pressure format
+      if_press_mesh = .false.
+      if (.not.ifsplit.and.if_full_pres) if_press_mesh = .true.
+ 
+      write(hdr,1) wdsizo,nxo,nyo,nzo,nelo,nelgt,time,istep,fid0,nfileoo
+     $            ,(rdcode1(i),i=1,10),p0th,if_press_mesh
+    1 format('#std',1x,i1,1x,i2,1x,i2,1x,i2,1x,i10,1x,i10,1x,e20.13,
+     &       1x,i9,1x,i6,1x,i6,1x,10a,1pe15.7,1x,l1)
+
+      test_pattern = 6.54321           ! write test pattern for byte swap
+
+      if(ifmpiio) then
+        ! only rank0 (pid00) will write hdr + test_pattern
+        call byte_write_mpi(hdr,iHeaderSize/4,pid00,ifh_mbyte,ierr)
+        call byte_write_mpi(test_pattern,1,pid00,ifh_mbyte,ierr)
+      else
+        call byte_write(hdr,iHeaderSize/4,ierr)
+        call byte_write(test_pattern,1,ierr)
+      endif
+
+      endif
+
+      call err_chk(ierr,'Error writing header in mfo_write_hdr. $')
+
+      ! write global element numbering for this group
+      if(nid.eq.pid0) then
+        if(ifmpiio) then
+          ioff = iHeaderSize + 4 + nelB*isize
+          call byte_set_view (ioff,ifh_mbyte)
+          call byte_write_mpi(lglel,nelt,-1,ifh_mbyte,ierr)
+        else
+          call byte_write(lglel,nelt,ierr)
+        endif
+
+        do j = pid0+1,pid1
+           mtype = j
+           call csend(mtype,idum,4,j,0)   ! handshake
+           len = 4*(lelt+1)
+           call crecv(mtype,lglist,len)
+           if(ierr.eq.0) then
+             if(ifmpiio) then
+              call byte_write_mpi(lglist(1),lglist(0),-1,ifh_mbyte,ierr)
+             else
+              call byte_write(lglist(1),lglist(0),ierr)
+             endif
+           endif
+        enddo
+      else
+        mtype = nid
+        call crecv(mtype,idum,4)          ! hand-shake
+        
+        lglist(0) = nelt
+        call icopy(lglist(1),lglel,nelt)
+
+        len = 4*(nelt+1)
+        call csend(mtype,lglist,len,pid0,0)  
+      endif 
+
+      call err_chk(ierr,'Error writing global nums in mfo_write_hdr$')
+      return
+      end
+c-----------------------------------------------------------------------
