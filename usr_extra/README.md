@@ -59,3 +59,46 @@ Please create issues for questions or bugs. Happy debugging.
    ```
    python3 ./change_time.py avgeddy.nek5000
    ```
+
+- (WIP) `my_gfldr_v.f`: only read vel mesh to avoid overflow in MPI communication
+   ```
+   #include <my_gfldr_v.f>
+
+   call my_gfldr_v('pink0.run')
+   ```
+
+- `(WIP) my_gfldr_b.f`: interpolate nblock (per rank) elements at a time to avoid overflow in MPI communication
+   ```
+   #include <my_gfldr_b.f>
+
+   nblock = 100 ! Each MPI rank interpolate 100 elements at a time
+   call my_gfldr_b(nblock 'pink0.run')
+   ```
+
+   Pseudo-code:
+   ```
+   read mesh from pink0.run   ! also distribute mesh to MPI ranks
+   findpt_setup               ! setup base mesh
+   do field
+      read field from pink0.run ! store read fld into buffer
+      do ipass=1,npass          ! get a block of elements
+         findpt                 ! locates points of those elements
+         findpt_eval            ! interpolate from buffer to fld(1,1,1,elems)
+      enddo
+   enddo
+
+   total read = {fields in pink0.run} intersects {requested fields}
+   memory = max size of a field (ldim * lx1*ly1*lz1*nelv, or lx1*ly1*lz1*nelt)
+   #findpt = {number of fields} x {npass}
+   #interpolation = {number of fields} x {npass}
+   ```
+
+- `my_gfldr_mesh.f` Often, we don't store mesh in every checkpoint file.
+   This interface allow user to specify two files. The first one for the mesh and the second one for fields. If the second files also has mesh, it reads the mesh again and overwrite the mesh from the first one.
+
+   ```
+   #include <my_gfldr_mesh.f>
+
+   # m.fld has mesh, v.fld has desired fields
+   call my_gfldr_b('m.fld ', 'v.fld ')
+   ```
