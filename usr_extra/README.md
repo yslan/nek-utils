@@ -102,3 +102,18 @@ Please create issues for questions or bugs. Happy debugging.
    # m.fld has mesh, v.fld has desired fields
    call my_gfldr_b('m.fld ', 'v.fld ')
    ```
+
+- rea2vtk.py: Convert rea/re2 into vtk for mesh inspection.
+
+  ```
+  python3 rea2vtk.py input.rea out.vtk
+  ```
+  - It supports 2D and 3D, rea and re2 (detected from the input extension).
+  - Depends on `pyvista`
+  - re2 reader modifed from kth groups' pymech [here](https://github.com/eX-Mech/pymech/blob/main/src/pymech/neksuite/mesh.py)
+  - has tested with a E=2M mesh
+
+  TODO: I don't like the current ordering of xyz ndarray    
+  TODO: Process data blocks by blocks to reduce memory requirement for 10x larger case.
+
+
