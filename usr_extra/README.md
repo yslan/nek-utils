@@ -117,3 +117,7 @@ Please create issues for questions or bugs. Happy debugging.
   TODO: Process data blocks by blocks to reduce memory requirement for 10x larger case.
 
 
+- `rotate_z_to_x.f`:
+  Often, we build mesh via n2to3 which exctudes in z. However, many engineer problems set streamwise direction in x.
+  Call this in usrdat2 to rotate coordinates from z+ to x+ to have peace in mind in postprocessing.
+
