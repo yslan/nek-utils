@@ -5,6 +5,8 @@ We use the target boundary (CBC or bdryID) to tag elements, then it increases th
 
 Currently, the code need to be refactored. However, examples should work individually.
 
+upd 031924, rotation other than face5-6 seems inconsistent 
+
 
 ## API
 

@@ -5,11 +5,11 @@ My collection of the toys with the configuration/instruction/doc for running Nek
 Disclaimer:       
 - Using scripts from a stranger is dangerous. **Use them at your own risk!**   
 - This is, and will always be, under construction.    
-  Those scripts might be out-dated. However, it should still work with minimal adjustment unless the machine has gone through a big upgrade.      
-  Please feel free contact me for any issues or if you find new changes.    
+  Those scripts might be out-dated. However, it should still work with minimal adjustment unless the machine has gone through a major upgrade.      
+  Please feel free to contact me for any issues or if you find new changes.    
 
 - This is simply a note for special machines, NOT a general guide to build NekRS.    
-  Please don't simply copy whatever in the code blocks to terminal.      
+  Please don't simply copy whatever in the code blocks to the terminal.      
 
 Credits to all developers and users who built, modified, refined, debugged, fixed, and used those scripts. 
 
