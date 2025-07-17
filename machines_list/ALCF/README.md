@@ -94,6 +94,31 @@ scripts `nrsqsub_polaris`
   # -DENABLE_AMGX=on -DENABLE_HYPRE_GPU=on
   ```
 
+### Polaris (Nek5000)
+
+scripts `n5kqsub_polaris`
+
+- env
+  ```
+  module use /soft/modulefiles
+  module load PrgEnv-gnu
+  module load spack-pe-base cmake
+  module list
+  ```
+
+- makenek
+  ```
+  # source path 
+  NEK_SOURCE_ROOT="/lus/grand/projects/CSC249ADCD04/ylan/src/Nek5000_repo_polaris"
+  
+  FC="ftn"
+  CC="cc"
+  
+  PPLIST="PARRSB DPROCMAP HYPRE"
+  
+  FFLAGS="-mcmodel=large"
+  CFLAGS="-mcmodel=large"
+  ```
 
 
 
