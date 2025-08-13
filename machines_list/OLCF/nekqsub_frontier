@@ -1,0 +1,91 @@
+#!/bin/bash
+set -e
+
+: ${PROJ_ID:="nfu106"}
+: ${QUEUE:="batch"}
+
+if [ $# -ne 3 ]; then
+  echo "usage: [PROJ_ID] [QUEUE] $0 <casename> <number of compute nodes> <hh:mm>"
+  exit 0
+fi
+
+if [ -z "$PROJ_ID" ]; then
+  echo "ERROR: PROJ_ID is empty"
+  exit 1
+fi
+
+bin="./nek5000"
+case=$1
+nodes=$2
+time=$3
+jobname="nek5000_$case"
+
+if [ ! -f $bin ]; then
+  echo "Cannot find" $bin
+  exit 1
+fi
+
+cpu_per_node=56
+let nn=$nodes*$cpu_per_node
+let ntasks=nn
+
+striping_unit=16777216
+max_striping_factor=400
+set +e; let striping_factor=$nodes/2; set -e
+if [ $striping_factor -gt $max_striping_factor ]; then
+  striping_factor=$max_striping_factor
+fi
+if [ $striping_factor -lt 1 ]; then
+  striping_factor=1
+fi
+
+# SESSION
+echo $case     >  SESSION.NAME
+echo `pwd`'/' >>  SESSION.NAME
+
+MPICH_MPIIO_HINTS="*:cray_cb_write_lock_mode=2:cray_cb_nodes_multiplier=4:striping_unit=${striping_unit}:striping_factor=${striping_factor}:romio_cb_write=enable:romio_ds_write=disable:romio_no_indep_rw=true"
+
+# sbatch
+SFILE=s.bin
+echo "#!/bin/bash" > $SFILE
+echo "#SBATCH -A $PROJ_ID" >>$SFILE
+echo "#SBATCH -J $jobname" >>$SFILE
+echo "#SBATCH -o %x-%j.out" >>$SFILE
+echo "#SBATCH -t ${time}:00" >>$SFILE
+echo "#SBATCH -N $nodes" >>$SFILE
+echo "#SBATCH -p $QUEUE" >>$SFILE
+echo "#SBATCH --exclusive" >>$SFILE
+echo "#SBATCH --ntasks-per-node=$cpu_per_node" >>$SFILE
+echo "module load PrgEnv-amd" >> $SFILE
+echo "module load craype-accel-amd-gfx90a" >> $SFILE
+echo "module load cray-mpich" >> $SFILE
+echo "module load rocm" >> $SFILE
+echo "module load cmake" >> $SFILE
+echo "module unload cray-libsci darshan-runtime" >> $SFILE
+echo "module list" >> $SFILE
+
+echo "squeue -u \$USER" >>$SFILE
+
+## These must be set before compiling so the executable picks up GTL
+echo "export PE_MPICH_GTL_DIR_amd_gfx90a=\"-L${CRAY_MPICH_ROOTDIR}/gtl/lib\"" >> $SFILE
+echo "export PE_MPICH_GTL_LIBS_amd_gfx90a=\"-lmpi_gtl_hsa\"" >> $SFILE
+
+echo "ulimit -s unlimited " >>$SFILE
+
+echo "export MPICH_MPIIO_HINTS=$MPICH_MPIIO_HINTS" >>$SFILE
+echo "export MPICH_MPIIO_STATS=1" >>$SFILE
+
+echo "export MPICH_OFI_NIC_POLICY=NUMA" >>$SFILE
+
+echo "export FI_CXI_RX_MATCH_MODE=hybrid" >> $SFILE
+
+echo "export PMI_MMAP_SYNC_WAIT_TIME=600" >> $SFILE
+
+echo "date" >>$SFILE
+echo "srun -N $nodes -n $ntasks $bin" >>$SFILE
+
+sbatch $SFILE
+
+# clean-up
+
+echo -e "\n# actual run" >>$SFILE
