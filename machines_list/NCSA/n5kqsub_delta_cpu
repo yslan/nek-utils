@@ -1,0 +1,92 @@
+#!/bin/bash
+
+: ${PROJ_ID:=""} # xxxx-delta-cpu where "xxxx" is yorur project id
+: ${QUEUE:="cpu"}
+
+if [ $# -ne 3 ]; then
+  echo "usage: [PROJ_ID] [QUEUE] $0 <casename> <number of compute nodes> <hh:mm>"
+  exit 0
+fi
+
+if [ -z "$PROJ_ID" ]; then
+  echo "ERROR: PROJ_ID is empty"
+  exit 1
+fi
+
+if [ -z "$QUEUE" ]; then
+  echo "ERROR: QUEUE is empty"
+  exit 1
+fi
+
+bin=./nek5000
+
+time=$3
+time_fmt=`echo $time|tr ":" " "|awk '{print NF}'`
+if [ "$time_fmt" -ne "2" ]; then
+  echo "Warning: time is not in the format <hh:mm>"
+  echo $time
+  exit 1
+fi
+
+case=$1
+nodes=$2
+sockets_per_node=2
+cores_per_socket=64
+let cpu_per_node=$sockets_per_node*$cores_per_socket
+let nn=$nodes*$cpu_per_node
+let ntasks=nn
+
+jobname="nek5000_"$case
+
+if [ ! -f $bin ]; then
+  echo "Cannot find" $bin
+  exit 1
+fi
+
+if [ ! -f $case.re2 ]; then
+  echo "Cannot find" $case.re2
+  exit 1
+fi
+
+echo $case     >  SESSION.NAME
+echo `pwd`'/' >>  SESSION.NAME
+
+# sbatch
+SFILE=s.bin
+echo "#!/bin/bash" > $SFILE
+echo "#SBATCH --account=$PROJ_ID" >>$SFILE
+echo "#SBATCH --job-name=$jobname" >>$SFILE
+echo "#SBATCH -o %x-%j.out" >>$SFILE
+echo "#SBATCH --time=$time:00" >>$SFILE
+echo "#SBATCH --nodes=$nodes" >>$SFILE
+echo "#SBATCH --partition=$QUEUE" >>$SFILE
+echo "#SBATCH --constraint=\"scratch\"" >>$SFILE
+echo "#SBATCH --exclusive" >>$SFILE
+echo "#SBATCH --mem=0" >>$SFILE
+echo "#SBATCH --ntasks-per-node=$cpu_per_node" >>$SFILE
+echo "#SBATCH --cpus-per-task=1" >>$SFILE
+
+#echo "export SLURM_CPU_BIND=\"cores\"" >> $SFILE
+echo "export OMP_NUM_THREADS=1" >>$SFILE
+
+echo "ulimit -s unlimited" >>$SFILE
+
+echo "module load cmake" >>$SFILE
+echo "module load gcc-runtime/11.4.0" >>$SFILE
+echo "module load openmpi/4.1.5+cuda" >>$SFILE
+echo "module list" >>$SFILE
+echo "cmake --version" >>$SFILE
+echo "which mpicc" >>$SFILE
+echo "ldd $bin" >>$SFILE
+
+echo "export OMP_NUM_THREADS=1" >> $SFILE
+
+echo "# Workaround for https://github.com/Nek5000/Nek5000/issues/759" >> $SFILE
+echo "export FI_OFI_RXM_RX_SIZE=32768" >> $SFILE
+
+echo "echo \"job start\"" >> $SFILE
+echo "TZ='America/Chicago' date" >> $SFILE
+
+echo "srun --ntasks=$nn --nodes=$nodes --ntasks-per-node=$cpu_per_node --cpus-per-task=1 $bin"  >> $SFILE
+
+sbatch $SFILE
