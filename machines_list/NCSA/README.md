@@ -75,4 +75,36 @@ script `nrsqsub_delta.v24`
 ### NekRS + Ascent
 
 
+### Nek5000
 
+`n5kqsub_delta_cpu`
+
+- modules are not that restrictive, here is one set following nekrs
+  ```
+  module load cmake
+  module load gcc-runtime/11.4.0
+  module load openmpi/4.1.5+cuda
+  ```
+
+- In makenek
+  ```
+  # source path 
+  NEK_SOURCE_ROOT="/scratch/bcla/XXXXXX/src/Nek5000" # change it
+  
+  # Fortran/C compiler
+  FC="mpif77"
+  CC="mpicc"
+
+  # config options (set to "?" to get a list)
+  PPLIST="PARRSB DPROCMAP HYPRE"
+
+  # optional compiler flags
+  FFLAGS="-mcmodel=large"
+  CFLAGS="-mcmodel=large"
+  ```
+
+- usage
+  ```
+  # 1 node, 20 mins
+  PROJ_ID=<your-project-id> ./n5kqsub_delta_cpu eddy_uvb 1 00:20
+  ```
