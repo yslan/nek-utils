@@ -74,4 +74,4 @@ echo `pwd`'/' >>  SESSION.NAME
 
 echo "mpiexec -n ${TOTAL_RANKS} -ppn $RANKS_PER_NODE --cpu-bind=list:${CPU_BIND_LIST} ./nek5000" >> $SFILE
 
-#qsub -q $QUEUE $SFILE
+qsub -q $QUEUE $SFILE
