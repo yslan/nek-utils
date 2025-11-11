@@ -1,0 +1,77 @@
+#!/bin/bash
+set -e
+
+#--------------------------------------
+: ${QUEUE:="prod"} # debug, debug-scaling, prod
+: ${RANKS_PER_NODE:="102"}
+: ${CPU_BIND_LIST:="1-51:53-103"}
+
+#--------------------------------------
+
+bin=./nek5000
+case=$1
+nodes=$2
+time=$3
+jobname="nek5000_"$case
+
+TOTAL_RANKS=$(( nodes * RANKS_PER_NODE ))
+
+time_fmt=`echo $time|tr ":" " "|awk '{print NF}'`
+if [ "$time_fmt" -ne "2" ]; then
+  echo "Warning: time is not in the format <hh:mm>"
+  echo $time
+  exit 1
+fi
+
+if [ ! -f $bin ]; then
+  echo "Cannot find" $bin
+  exit 1
+fi
+
+#--------------------------------------
+# Generate the submission script
+SFILE=s.bin
+echo "#!/bin/bash" > $SFILE
+echo "#PBS -A $PROJ_ID" >>$SFILE
+echo "#PBS -N $jobname" >>$SFILE
+echo "#PBS -l walltime=${time}:00" >>$SFILE
+echo "#PBS -l select=$nodes" >>$SFILE
+echo "#PBS -l place=scatter" >>$SFILE
+echo "#PBS -l filesystems=home:flare" >>$SFILE
+echo "#PBS -k doe" >>$SFILE
+echo "#PBS -j oe" >>$SFILE
+
+echo "export TZ='/usr/share/zoneinfo/US/Central'" >> $SFILE
+
+# job to "run" from your submission directory
+echo "cd \$PBS_O_WORKDIR" >> $SFILE
+
+echo "echo Jobid: \$PBS_JOBID" >>$SFILE
+echo "echo Running on host \`hostname\`" >>$SFILE
+echo "echo Running on nodes \`cat \$PBS_NODEFILE\`" >>$SFILE
+
+echo "module load cmake" >> $SFILE
+echo "module list" >> $SFILE
+
+echo "export FI_CXI_RX_MATCH_MODE=hybrid" >> $SFILE # required by parRSB
+
+# Temporary workaround while waiting on bugfix in runtime
+echo "export UR_L0_USE_COPY_ENGINE=0" >> $SFILE
+
+# romio hint
+# https://docs.alcf.anl.gov/aurora/data-management/daos/daos-overview/?h=stripe#mpi-io-container-access
+s=.romio_hint
+echo "romio_cb_write enable" > $s
+echo "romio_cb_read enable" >> $s
+echo "cb_buffer_size 16777216" >> $s
+echo "cb_config_list *:8" >> $s
+echo "striping_unit 2097152" >> $s # should matchchunk size
+echo "export ROMIO_HINTS=.romio_hint" >> $SFILE # MPIIO-hint is for cray
+echo "export MPICH_MPIIO_STATS=1" >> $SFILE
+
+echo $case     >  SESSION.NAME
+echo `pwd`'/' >>  SESSION.NAME
+
+echo "mpiexec -n ${TOTAL_RANKS} -ppn $RANKS_PER_NODE --cpu-bind=list:${CPU_BIND_LIST} ./nek5000" >> $SFILE
+
+#qsub -q $QUEUE $SFILE
