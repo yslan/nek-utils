@@ -3,6 +3,7 @@ set -e
 
 #--------------------------------------
 : ${QUEUE:="prod"} # debug, debug-scaling, prod
+: ${PROJ_ID:=""}
 : ${RANKS_PER_NODE:="102"}
 : ${CPU_BIND_LIST:="1-51:53-103"}
 
@@ -20,6 +21,15 @@ time_fmt=`echo $time|tr ":" " "|awk '{print NF}'`
 if [ "$time_fmt" -ne "2" ]; then
   echo "Warning: time is not in the format <hh:mm>"
   echo $time
+  exit 1
+fi
+
+if [ -z "$PROJ_ID" ]; then
+  echo "ERROR: PROJ_ID is empty"
+  exit 1
+fi
+if [ -z "$QUEUE" ]; then
+  echo "ERROR: QUEUE is empty"
   exit 1
 fi
 
