@@ -121,3 +121,115 @@ c     This print types of current BC, counting as well
       return
       end
 c-----------------------------------------------------------------------
+      subroutine my_bdid_chk(s3)
+      implicit none
+      include 'SIZE'
+      include 'TOTAL'
+
+      integer nbid,lcbc,bid,i,j,e,f,inid,mtype,idummy,nbid_tmp,nel,ifld
+      parameter (lcbc=10) ! max # unique CBC
+      integer bid_count(lcbc),bid_count_tmp(lcbc)
+      integer bid_list(lcbc),bid_list_tmp(lcbc),cbc3
+      logical bid_in_list
+      character*3 s3
+      character*5 tag5
+
+      ! pass 1: bdid
+      do ifld=1,2
+
+        nel = nelv
+        tag5 = "bdidv" 
+        if (ifld.eq.2) then
+          nel=nelt
+          tag5 = "bdidt"
+        endif
+        
+        call izero(bid_count,lcbc)
+        
+        nbid = 1         ! # unique CBC
+        bid_list(1) = 0 ! internal BC
+        
+        do e=1,nel
+        do f=1,2*ldim
+          
+          bid = boundaryID(f,e)
+          if (ifld.eq.2) bid = boundaryIDt(f,e)
+          
+          bid_in_list = .false.
+          if (bid.eq.0) then
+            bid_count(1) = bid_count(1) + 1
+            bid_in_list = .true.
+          else 
+            do i=2,nbid ! go throught the registered CBC
+              if (bid.eq.bid_list(i)) then  
+                bid_count(i) = bid_count(i) + 1
+                bid_in_list = .true.
+              endif
+            enddo
+          endif
+          if (.not.bid_in_list) then
+            nbid = nbid + 1
+            if (nbid.gt.lcbc)
+     $        call exitti('BCchk: Increase lcbc$',nbid)
+            
+            bid_list (nbid) = bid
+            bid_count(nbid) = 1
+          endif
+        enddo
+        enddo
+      
+        call nekgsync()
+      
+        ! All reduce to nid=0
+        if (nid.eq.0) then
+          do inid=1,np-1
+            mtype = inid
+            call csend(mtype,idummy,isize,inid,0) ! handshake
+            
+            call crecv(mtype,nbid_tmp,isize)
+            call crecv(mtype,bid_list_tmp(1), isize*nbid_tmp)
+            call crecv(mtype,bid_count_tmp(1),isize*nbid_tmp)
+            
+            bid_count(1) = bid_count(1)+bid_count_tmp(1)
+            do j=2,nbid_tmp 
+              bid_in_list = .false.
+              do i=2,nbid
+                if (bid_list(i).eq.bid_list_tmp(j)) then
+                  bid_count(i) = bid_count(i) + bid_count_tmp(j)
+                  bid_in_list = .true.
+                endif
+              enddo
+              if (.not.bid_in_list) then
+                nbid = nbid + 1
+                if (nbid.gt.lcbc)
+     $            call exitti('BCchk: Increase lcbc$',nbid)
+                
+                bid_list(nbid) = bid_list_tmp(j)
+                bid_count(nbid) = bid_count_tmp(j)
+              endif
+            enddo
+          enddo
+        else
+          mtype = nid
+          call crecv(mtype,idummy,isize) ! ! handshake
+
+          call csend(mtype,nbid,isize,0,0)
+          call csend(mtype,bid_list,isize*nbid,0,0)
+          call csend(mtype,bid_count,isize*nbid,0,0)
+        endif
+
+        call nekgsync()
+
+        ! print
+        if (nid.eq.0) then
+          do i=1,nbid
+            write(6,41) s3,tag5,bid_list(i),bid_count(i)
+          enddo
+        endif
+
+      enddo !ifld
+
+   41 format(a3,' BCid: ',a5,i5,i10)
+      return
+      end
+c---------------------------------------------------------------------
