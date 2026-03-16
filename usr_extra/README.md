@@ -103,10 +103,12 @@ Please create issues for questions or bugs. Happy debugging.
    call my_gfldr_b('m.fld ', 'v.fld ')
    ```
 
-- rea2vtk.py: Convert rea/re2 into vtk for mesh inspection.
+- rea2vtk.py: Convert rea/re2 into vtk for mesh inspection.    
+  (`rea2vtk_mpi.py`): MPI version from re2 to pvtu
 
   ```
   python3 rea2vtk.py input.rea out.vtk
+  mpiexec -np 2 python3 rea2vtk_mpi.py input.rea out.pvtu
   ```
   - It supports 2D and 3D, rea and re2 (detected from the input extension).
   - Depends on `pyvista`
@@ -115,8 +117,20 @@ Please create issues for questions or bugs. Happy debugging.
 
   TODO: I don't like the current ordering of xyz ndarray    
   TODO: Process data blocks by blocks to reduce memory requirement for 10x larger case.
-  TODO: mpi, pvtu
+  TODO: check re2 ver
   TODO: add examples
+  TODO: rea reader is serial in rea2vtk_mpi.py
+
+  quick test, on my laptop, Intel Core i9-12900H (12th-gen Alder Lake, 6 P-cores + 8 E-cores)
+  ```
+  read header ...       hdr: 62132 3 62132
+
+  #rank    read        write       read eff    write eff
+  1        1.0180e-02  4.0950e-01  1.000       1.000
+  2        7.1593e-03  2.1050e-01  0.711       0.973
+  4        9.4292e-03  1.2135e-01  0.270       0.844
+  8        2.0745e-02  8.2203e-02  0.061       0.623
+  ```
 
 - `rotate_z_to_x.f`:
   Often, we build mesh via n2to3 which exctudes in z. However, many engineer problems set streamwise direction in x.
