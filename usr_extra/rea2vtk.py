@@ -3,11 +3,19 @@ import pyvista as pv
 import sys
 import struct
 import matplotlib.pyplot as plt
+import time
 
 assert len(sys.argv) == 3, '\n\nUsage: python3 ./%s in.rea out.vtk'%sys.argv[0]
 
 fname = sys.argv[1]
 fout = sys.argv[2]
+
+def tic(s,pad=2,end=''):
+    s0=' '*pad
+    print(s0+'%-20s'%s, end=end)
+    return time.perf_counter()
+def toc(t0):
+    print('  done! (%.4e sec)'% (time.perf_counter() - t0))
 
 def reader_rea(fname):
 
@@ -74,10 +82,11 @@ def reader_rea(fname):
     return xyz
 
 def reader_re2(fname):
+    t00 = time.perf_counter()
     with open(fname, 'rb') as f:
         hdr = f.read(80).decode("utf-8").split()
         nelt, dim, nelv = int(hdr[1]), int(hdr[2]), int(hdr[3])
-        print('hdr:',nelt,dim,nelv)
+        print('  hdr:',nelt,dim,nelv)
 
         wdsz = 8
         realtype = "d"
@@ -90,35 +99,48 @@ def reader_re2(fname):
         etagB = int(etagB * 1e5) / 1e5
 
         if etagL == 6.54321:
-            print('little-endian')
+            print('  little-endian')
             emode = "<"
             endian = "little"
         elif etagB == 6.54321:
-            print('big-endian')
+            print('  big-endian')
             emode = ">"
             endian = "big"
         else:
             raise ValueError("Could not interpret endianness")
 
         nv = pow(2, dim)
-        buf = f.read((dim * nv + 1) * wdsz * nelt)
-        xyz = np.zeros((nv, nelt, dim))
 
+        t0 = tic('read buf...')
+        buf = f.read((dim * nv + 1) * wdsz * nelt)
+        toc(t0)
+
+        t0 = tic('allocate xyz...')
+        xyz = np.zeros((nv, nelt, dim))
+        toc(t0)
+
+        t0 = tic('read from buf...')
         fi = np.frombuffer(
             buf,
             dtype = emode + realtype,
             count = (dim * nv + 1) * nelt,
             offset = 0
         )
+        toc(t0)
+
+        t0=tic('reshape...')
         fi = np.reshape(fi, (nelt, dim * nv + 1 ))
         group = fi[:,0] # not used
 
         fi = np.reshape(fi[:,1:], (nelt, dim, nv)) # discard group id
         xyz = np.moveaxis(fi, [0,1,2], [1,2,0])
+        toc(t0)
+
+        print('Done! (%.4e sec)'%(time.perf_counter()-t00))
         return xyz
 
 def read_mesh(fname):
-    print('reading mesh section in %s ...'%fname)
+    print('Reading mesh section in %s ...'%fname)
     if fname.endswith('.rea'):
         return reader_rea(fname)
     elif fname.endswith('.re2'):
@@ -157,24 +179,38 @@ def plot_quad_v2(xyz):
 
 
 def dump_vtk(xyz, fname):
+    print('Writing mesh to %s ...'%fname)
+    t00 = time.perf_counter()
+    
     nv, E, dim = xyz.shape
     assert nv in (4, 8), '#vertex = 4 or 8'
     assert dim in (2, 3), 'bad dim'
-
+    
+    t0 = tic('allocate ...')
     points = np.zeros((E * nv, 3))
     xyz_t = np.transpose(xyz, (1, 0, 2))
     points[:,:dim] = xyz_t.reshape(E * nv, dim)
+    toc(t0)
 
+    t0 = tic('connectivity ...')
     connectivity = np.arange(E * nv, dtype=np.int64).reshape(E, nv)
     cells = np.hstack([np.full((E, 1), nv, dtype=np.int64), connectivity])
+    toc(t0)
 
+    t0 = tic('cell type ...')
     vtkCellType = 9 if dim==2 else 12
     cellType = np.full(E, vtkCellType, dtype=np.uint8)
+    toc(t0)
 
+    t0 = tic('pv UnstructuredGrid ...')
     grid = pv.UnstructuredGrid(cells, cellType, points)
     grid.point_data["elementId"] = np.repeat(np.arange(1, E + 1), nv)
+    toc(t0)
 
+    t0 = tic('save ...')
     grid.save(fname)
+    toc(t0)
+    print('Done! (%.4e sec)'%(time.perf_counter()-t00))
 
 X = read_mesh(fname)
 dump_vtk(X, fout)

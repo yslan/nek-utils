@@ -115,7 +115,8 @@ Please create issues for questions or bugs. Happy debugging.
 
   TODO: I don't like the current ordering of xyz ndarray    
   TODO: Process data blocks by blocks to reduce memory requirement for 10x larger case.
-
+  TODO: mpi, pvtu
+  TODO: add examples
 
 - `rotate_z_to_x.f`:
   Often, we build mesh via n2to3 which exctudes in z. However, many engineer problems set streamwise direction in x.
