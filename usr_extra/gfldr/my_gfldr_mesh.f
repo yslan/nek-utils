@@ -113,7 +113,7 @@ c
       if(nid.eq.0) then
         open (90,file=sourcefld,status='old',err=200)
         close(90)
-        goto 101
+        goto 201
  200    ierr = 1
  201  endif
       call err_chk(ierr,' Cannot open source fld file!$')

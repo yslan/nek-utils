@@ -28,7 +28,7 @@ c
       real*4 bytetest
 
       etime_t = dnekclock_sync()
-      if(nio.eq.0) write(6,*) 'call my_gfldr_v ',trim(sourcefld) 
+      if(nio.eq.0) write(6,*) 'call my_gfldr ',trim(sourcefld) 
 
       ! open source field file
       ierr = 0
@@ -40,7 +40,7 @@ c
  101  endif
       call err_chk(ierr,' Cannot open source fld file!$')
       call byte_open_mpi(sourcefld,fldh_gfldr,.true.,ierr)
-      if(nio.eq.0) write(6,*) 'my_gfldr_v file opened'
+      if(nio.eq.0) write(6,*) 'my_gfldr file opened'
 
       ! read and parse header
       call byte_read_mpi(hdr,iHeaderSize/4,0,fldh_gfldr,ierr)
@@ -50,7 +50,7 @@ c
       call err_chk(ierr,' Invalid header!$')
       ifbswp = if_byte_swap_test(bytetest,ierr)
       call err_chk(ierr,' Invalid endian tag!$')
-      if(nio.eq.0) write(6,*) 'my_gfldr_v header is read'
+      if(nio.eq.0) write(6,*) 'my_gfldr header is read'
 
       nelgs   = nelgr
       nxs     = nxr
@@ -88,7 +88,7 @@ c
      $   'ABORT: buffer too small, increase lelt > ', lelt_req
         call exitt
       endif
-      if(nio.eq.0) write(6,*) 'my_gfldr_v nelgs',nelgs,nels
+      if(nio.eq.0) write(6,*) 'my_gfldr nelgs',nelgs,nels
 
       ifldpos = 0
       if(ifgetxr) then
@@ -102,7 +102,7 @@ c
       if(if_full_pres) then
         call exitti('no support for if_full_pres!$',0)
       endif
-      if(nio.eq.0) write(6,*) 'my_gfldr_v mesh is read'
+      if(nio.eq.0) write(6,*) 'my_gfldr mesh is read'
 
       ! initialize interpolation tool using source mesh
       nxf   = 2*nxs
@@ -189,7 +189,7 @@ c           ntot = nx1*ny1*nz1*nelfld(i+2)
         endif
       enddo
 
-      if(nio.eq.0) write(6,*) 'my_gfldr_v findpts getfld done'
+      if(nio.eq.0) write(6,*) 'my_gfldr findpts getfld done'
       call byte_close_mpi(fldh_gfldr,ierr)
       etime_t = dnekclock_sync() - etime_t
       call fgslib_findpts_free(inth_gfldr)
@@ -198,142 +198,142 @@ c           ntot = nx1*ny1*nz1*nelfld(i+2)
 
       return
       end
-cc-----------------------------------------------------------------------
-c      subroutine gfldr_getxyz(xout,yout,zout)
-c
-c      include 'SIZE'
-c      include 'GFLDR'
-c      include 'RESTART'
-c
-c      real xout(*)
-c      real yout(*)
-c      real zout(*)
-c
-c      integer*8 ioff_b
-c
-c 
-c      ioff_b = noff0_b + ldim*rankoff_b
-c      call byte_set_view(ioff_b,fldh_gfldr)
-c
-c      nread = ldim*ntots_b/4
-c      call byte_read_mpi(bufr,nread,-1,fldh_gfldr,ierr)
-c      if(ifbswp) then
-c        if(wdsizr.eq.4) call byte_reverse (bufr,nread,ierr)
-c        if(wdsizr.eq.8) call byte_reverse8(bufr,nread,ierr)
-c      endif
-c
-c      call gfldr_buf2vi (xout,1,bufr,ldim,wdsizr,nels,nxyzs)
-c      call gfldr_buf2vi (yout,2,bufr,ldim,wdsizr,nels,nxyzs)
-c      if(ldim.eq.3)
-c     $ call gfldr_buf2vi(zout,3,bufr,ldim,wdsizr,nels,nxyzs)
-c
-c      return
-c      end
-cc-----------------------------------------------------------------------
-c      subroutine gfldr_getfld(out1,out2,out3,nout,nldim,ifldpos)
-c
-c      include 'SIZE'
-c      include 'GEOM'
-c      include 'GFLDR'
-c      include 'RESTART'
-c
-c      real out1(*)
-c      real out2(*)
-c      real out3(*)
-c
-c      integer*8 ioff_b
-c
-c      logical ifpts
-c
-c      integer icalld
-c      save    icalld
-c      data    icalld /0/
-c
-c
-c      ifpts = .false.
-c      if(icalld.eq.0) then
-c        ifpts = .true. ! find points
-c        icalld = 1
-c      endif
-c
-c      ! read field data from source fld file
-c      ioff_b = noff0_b + (ifldpos-1)*nSizeFld_b
-c      ioff_b = ioff_b  + nldim*rankoff_b
-c      call byte_set_view(ioff_b,fldh_gfldr)
-c      nread = nldim*ntots_b/4
-c      call byte_read_mpi(bufr,nread,-1,fldh_gfldr,ierr)
-c      if(ifbswp) then
-c        if(wdsizr.eq.4) call byte_reverse (bufr,nread,ierr)
-c        if(wdsizr.eq.8) call byte_reverse8(bufr,nread,ierr)
-c      endif
-c
-c      ! interpolate onto current mesh
-c      call gfldr_buf2vi  (buffld,1,bufr,nldim,wdsizr,nels,nxyzs)
-c      call gfldr_intp    (out1,nout,buffld,ifpts)
-c      if(nldim.eq.1) return
-c
-c      call gfldr_buf2vi  (buffld,2,bufr,nldim,wdsizr,nels,nxyzs)
-c      call gfldr_intp    (out2,nout,buffld,.false.)
-c      if(nldim.eq.2) return
-c
-c      if(nldim.eq.3) then
-c        call gfldr_buf2vi(buffld,3,bufr,nldim,wdsizr,nels,nxyzs)
-c        call gfldr_intp  (out3,nout,buffld,.false.)
-c      endif
-c
-c      return
-c      end
-cc-----------------------------------------------------------------------
-c      subroutine gfldr_buf2vi(vi,index,buf,ldim,wds,nel,nxyz)
-c
-c      real    vi(*)
-c      real*4  buf(*)
-c      integer wds
-c
-c
-c      do iel = 1,nel
-c         j = (iel-1)*nxyz
-c         k = (iel-1)*ldim*nxyz
-c
-c         if(index.eq.2) k = k+nxyz
-c         if(index.eq.3) k = k+2*nxyz
-c
-c         if(wds.eq.4) call copy4r(vi(j+1),buf(k+1)  ,nxyz)
-c         if(wds.eq.8) call copy  (vi(j+1),buf(2*k+1),nxyz)
-c      enddo
-c
-c      return
-c      end
-cc-----------------------------------------------------------------------
-c      subroutine gfldr_intp(fieldout,nout,fieldin,iffpts)
-c
-c      include 'SIZE'
-c      include 'RESTART'
-c      include 'GEOM'
-c      include 'GFLDR'
-c
-c      real    fieldout(nout)
-c      real    fieldin (*)
-c
-c      ! evaluate inut field at given points
-c      npt = nout
-c      call fgslib_findpts_eval(inth_gfldr,
-c     &                         fieldout,1,
-c     &                         grcode,1,
-c     &                         gproc,1,
-c     &                         gelid,1,
-c     &                         grst,ldim,npt,
-c     &                         fieldin)
-c
-c      return
-c      end
-cc-----------------------------------------------------------------------
+c-----------------------------------------------------------------------
+      subroutine gfldr_getxyz(xout,yout,zout)
+
+      include 'SIZE'
+      include 'GFLDR'
+      include 'RESTART'
+
+      real xout(*)
+      real yout(*)
+      real zout(*)
+
+      integer*8 ioff_b
+
+ 
+      ioff_b = noff0_b + ldim*rankoff_b
+      call byte_set_view(ioff_b,fldh_gfldr)
+
+      nread = ldim*ntots_b/4
+      call byte_read_mpi(bufr,nread,-1,fldh_gfldr,ierr)
+      if(ifbswp) then
+        if(wdsizr.eq.4) call byte_reverse (bufr,nread,ierr)
+        if(wdsizr.eq.8) call byte_reverse8(bufr,nread,ierr)
+      endif
+
+      call gfldr_buf2vi (xout,1,bufr,ldim,wdsizr,nels,nxyzs)
+      call gfldr_buf2vi (yout,2,bufr,ldim,wdsizr,nels,nxyzs)
+      if(ldim.eq.3)
+     $ call gfldr_buf2vi(zout,3,bufr,ldim,wdsizr,nels,nxyzs)
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine gfldr_getfld(out1,out2,out3,nout,nldim,ifldpos)
+
+      include 'SIZE'
+      include 'GEOM'
+      include 'GFLDR'
+      include 'RESTART'
+
+      real out1(*)
+      real out2(*)
+      real out3(*)
+
+      integer*8 ioff_b
+
+      logical ifpts
+
+      integer icalld
+      save    icalld
+      data    icalld /0/
+
+
+      ifpts = .false.
+      if(icalld.eq.0) then
+        ifpts = .true. ! find points
+        icalld = 1
+      endif
+
+      ! read field data from source fld file
+      ioff_b = noff0_b + (ifldpos-1)*nSizeFld_b
+      ioff_b = ioff_b  + nldim*rankoff_b
+      call byte_set_view(ioff_b,fldh_gfldr)
+      nread = nldim*ntots_b/4
+      call byte_read_mpi(bufr,nread,-1,fldh_gfldr,ierr)
+      if(ifbswp) then
+        if(wdsizr.eq.4) call byte_reverse (bufr,nread,ierr)
+        if(wdsizr.eq.8) call byte_reverse8(bufr,nread,ierr)
+      endif
+
+      ! interpolate onto current mesh
+      call gfldr_buf2vi  (buffld,1,bufr,nldim,wdsizr,nels,nxyzs)
+      call gfldr_intp    (out1,nout,buffld,ifpts)
+      if(nldim.eq.1) return
+
+      call gfldr_buf2vi  (buffld,2,bufr,nldim,wdsizr,nels,nxyzs)
+      call gfldr_intp    (out2,nout,buffld,.false.)
+      if(nldim.eq.2) return
+
+      if(nldim.eq.3) then
+        call gfldr_buf2vi(buffld,3,bufr,nldim,wdsizr,nels,nxyzs)
+        call gfldr_intp  (out3,nout,buffld,.false.)
+      endif
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine gfldr_buf2vi(vi,index,buf,ldim,wds,nel,nxyz)
+
+      real    vi(*)
+      real*4  buf(*)
+      integer wds
+
+
+      do iel = 1,nel
+         j = (iel-1)*nxyz
+         k = (iel-1)*ldim*nxyz
+
+         if(index.eq.2) k = k+nxyz
+         if(index.eq.3) k = k+2*nxyz
+
+         if(wds.eq.4) call copy4r(vi(j+1),buf(k+1)  ,nxyz)
+         if(wds.eq.8) call copy  (vi(j+1),buf(2*k+1),nxyz)
+      enddo
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine gfldr_intp(fieldout,nout,fieldin,iffpts)
+
+      include 'SIZE'
+      include 'RESTART'
+      include 'GEOM'
+      include 'GFLDR'
+
+      real    fieldout(nout)
+      real    fieldin (*)
+
+      ! evaluate inut field at given points
+      npt = nout
+      call fgslib_findpts_eval(inth_gfldr,
+     &                         fieldout,1,
+     &                         grcode,1,
+     &                         gproc,1,
+     &                         gelid,1,
+     &                         grst,ldim,npt,
+     &                         fieldin)
+
+      return
+      end
+c-----------------------------------------------------------------------
 #else
       subroutine my_gfldr_v(sourcefld)
 
       character sourcefld*(*)
 
-      call exitti("MPIIO needed for my_gfldr_v!$",0)
+      call exitti("MPIIO needed for my_gfldr!$",0)
 
       return
       end

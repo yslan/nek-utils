@@ -1,6 +1,6 @@
 #ifndef NOMPIIO
 
-      subroutine my_gfldr_b(nel_block,sourcefld)
+      subroutine my_gfldr_b(sourcefld, bsize)
 c
 c     generic field file reader
 c     reads sourcefld and interpolates all avaiable fields
@@ -21,15 +21,15 @@ c
 
       character*1   hdr(iHeaderSize)
 
-      integer nel_block
       integer*8 dtmp8
+      integer*8 i8glsum,nfail,nfail_sum
 
       logical if_byte_swap_test
       real*4 bytetest
+      integer bsize
 
       etime_t = dnekclock_sync()
-      if(nio.eq.0) write(6,*) 'call my_gfldr_b '
-     $                      , nel_block,trim(sourcefld) 
+      if(nio.eq.0) write(6,*) 'call my_gfldb ',trim(sourcefld),bsize
 
       ! open source field file
       ierr = 0
@@ -41,7 +41,7 @@ c
  101  endif
       call err_chk(ierr,' Cannot open source fld file!$')
       call byte_open_mpi(sourcefld,fldh_gfldr,.true.,ierr)
-      if(nio.eq.0) write(6,*) 'my_gfldr_b file opened'
+      if(nio.eq.0) write(6,*) 'my_gfldr file opened'
 
       ! read and parse header
       call byte_read_mpi(hdr,iHeaderSize/4,0,fldh_gfldr,ierr)
@@ -51,7 +51,7 @@ c
       call err_chk(ierr,' Invalid header!$')
       ifbswp = if_byte_swap_test(bytetest,ierr)
       call err_chk(ierr,' Invalid endian tag!$')
-      if(nio.eq.0) write(6,*) 'my_gfldr_b header is read'
+      if(nio.eq.0) write(6,*) 'my_gfldr header is read'
 
       nelgs   = nelgr
       nxs     = nxr
@@ -89,7 +89,7 @@ c
      $   'ABORT: buffer too small, increase lelt > ', lelt_req
         call exitt
       endif
-      if(nio.eq.0) write(6,*) 'my_gfldr_b nelgs',nelgs,nels
+      if(nio.eq.0) write(6,*) 'my_gfldr nelgs',nelgs,nels
 
       ifldpos = 0
       if(ifgetxr) then
@@ -103,7 +103,7 @@ c
       if(if_full_pres) then
         call exitti('no support for if_full_pres!$',0)
       endif
-      if(nio.eq.0) write(6,*) 'my_gfldr_b mesh is read'
+      if(nio.eq.0) write(6,*) 'my_gfldr mesh is read'
 
       ! initialize interpolation tool using source mesh
       nxf   = 2*nxs
@@ -116,96 +116,44 @@ c
      &                          xm1s,ym1s,zm1s,nxs,nys,nzs,
      &                          nels,nxf,nyf,nzf,bb_t,
      &                          nhash,nhash,nmax,tol)
-      if(nio.eq.0) write(6,*) 'my_gfldr_b findpts_setup done'
+      if(nio.eq.0) write(6,*) 'my_gfldr findpts_setup done'
 
-      if(ifgetur) then 
-        if(.not.ifgfldr.or.ifgetu) then !skip if this is a restart call and the scalar isn't requested
-          if(nio.eq.0) write(6,*) 'my_gfldr_b reading vel'
-          call my_gfldr_loop(vx,vy,vz,nelv,nel_block,ldim,ifldpos+1)
+      nbatch = (nelt - 1) / bsize + 1
+      nbatch = iglmax(nbatch, 1)
+      if(nio.eq.0) write(6,*) 'my_gfldr bsize', bsize, nelt, nbatch
+
+      do ibatch = 1, nbatch
+
+        ifldpos = 0
+        if(ifgetxr) then
+          ifldpos = ldim
         endif
-        ifldpos = ifldpos + ldim
-      endif
-      if(ifgetpr) then
-        if(.not.ifgfldr.or.ifgetp) then !skip if this is a restart call and the scalar isn't requested
-          if(nio.eq.0) write(6,*) 'my_gfldr_b reading pr'
-          call my_gfldr_loop(pm1,dum,dum,nelv,nel_block,1,ifldpos+1)
-          if (ifaxis) call axis_interp_ic(pm1) ! move to the end
-          call map_pm1_to_pr(pm1,1)
-        endif
-        ifldpos = ifldpos + 1
-      endif
-      if(ifgettr .and. ifheat) then
-        if(.not.ifgfldr.or.ifgett) then !skip if this is a restart call and the scalar isn't requested
-          if(nio.eq.0) write(6,*) 'my_gfldr_b reading temp'
-          call my_gfldr_loop(t,dum,dum,nelt,nel_block,1,ifldpos+1)
-        endif
-        ifldpos = ifldpos + 1
-      endif
-      do i = 1,ldimt-1
-        if(ifgtpsr(i)) then
-          if(.not.ifgfldr.or.ifgtps(i)) then !skip if this is a restart call and the scalar isn't requested
-            if(nio.eq.0) write(6,*) 'my_gfldr_b reading scalar',i
-            ntot = nx1*ny1*nz1*mm
-            call my_gfldr_loop(t(1,1,1,1,i+1),dum,dum
-     $                        ,nelt,nel_block,1,ifldpos+1)
-          endif
-          ifldpos = ifldpos + 1
-        endif
-      enddo
 
-      if(nio.eq.0) write(6,*) 'my_gfldr_b findpts getfld done'
-      call byte_close_mpi(fldh_gfldr,ierr)
-      etime_t = dnekclock_sync() - etime_t
-      call fgslib_findpts_free(inth_gfldr)
-      if(nio.eq.0) write(6,'(A,1(1g9.2),A)')
-     &                   ' done :: my_gfldr_b  ', etime_t, ' sec'
-
-  51  format(a,i3,'/',i3,' kk=',i9,' mm=',i9)
-      return
-      end
-cc-----------------------------------------------------------------------
-      subroutine my_gfldr_loop(out1,out2,out3
-     $                        ,nel_in,nel_block,nldim,ifldpos)
-      include 'SIZE'
-      include 'TOTAL'
-      include 'RESTART'
-      include 'GFLDR'
-
-      integer*8 i8glsum,nfail,nfail_sum
-
-      real out1(*)
-      real out2(*)
-      real out3(*)
-      integer kk, mm, nel_in, nel_block, ipass, npass
-      character*3 s3
-
-      call my_gfldr_getfld_buf(nldim,ifldpos) ! read data
-
-      npass = 1 + nel_in / nel_block
-      kk = 1
-      do ipass = 1,npass ! interp data block by block
-        mm = nel_in - kk + 1
-        mm = min(mm,nel_block)
-
-        if(nio.eq.0) write(6,51)'my_gfldr loop',ipass,npass,kk,mm
-
-        ntot = nx1*ny1*nz1*mm
+        ! range of elem
+        jeln1 = (ibatch-1) * bsize + 1
+        jeln2 = jeln1 + bsize
+        jeln2 = min(jeln2, nelt)
+        neln = jeln2 - jeln1 + 1
+        ! TODO assert neln <= nelt
+        if(nio.eq.0) write(6,*) 'my_gfldr batch'
+     $                        , ibatch, jeln1, jeln2, neln, nelt
 
         ! locate points (iel,iproc,r,s,t)
         nfail = 0
         toldist = 5e-6
         if(wdsizr.eq.8) toldist = 5e-14
 
+        ntot  = lx1*ly1*lz1*neln
         call fgslib_findpts(inth_gfldr,
      &                      grcode,1,
      &                      gproc,1,
      &                      gelid,1,
      &                      grst,ldim,
      &                      gdist,1,
-     &                      xm1(1,1,1,kk),1,
-     &                      ym1(1,1,1,kk),1,
-     &                      zm1(1,1,1,kk),1,ntot)
-        if(nio.eq.0) write(6,*) 'my_gfldr loop findpts done',ipass
+     &                      xm1(1,1,1,jeln1),1,
+     &                      ym1(1,1,1,jeln1),1,
+     &                      zm1(1,1,1,jeln1),1,ntot)
+        if(nio.eq.0) write(6,*) 'my_gfldr findpts done', ibatch
 
         do i=1,ntot
            if(grcode(i).eq.1 .and. sqrt(gdist(i)).gt.toldist)
@@ -221,12 +169,65 @@ cc-----------------------------------------------------------------------
         endif
 
         ! read source fields and interpolate
-        call my_gfldr_getfld_intp(out1,out2,out3,kk,ntot,nldim)
+        if(ifgetur) then
+          if(.not.ifgfldr.or.ifgetu) then !skip if this is a restart call and the scalar isn't requested
+          if(jeln2.le.nelv) then
+            if(nid.eq.0 .and. loglevel.gt.2) write(6,*) 'reading vel'
+            ntot = nx1*ny1*nz1*neln
+            call my_gfldr_getfld(vx,vy,vz,ntot,ldim,ifldpos+1,jeln1)
+          endif
+          endif
+          ifldpos = ifldpos + ldim
+        endif
+        if(ifgetpr) then
+          if(.not.ifgfldr.or.ifgetp) then !skip if this is a restart call and the scalar isn't requested
+          if(jeln2.le.nelv) then
+            if(nid.eq.0 .and. loglevel.gt.2) write(6,*) 'reading pr'
+            ntot = nx1*ny1*nz1*neln
+            call my_gfldr_getfld(pm1,dum,dum,ntot,1,ifldpos+1,jeln1)
+            if (ifaxis) call axis_interp_ic(pm1)
+            call map_pm1_to_pr(pm1,1)
+          endif
+          endif
+          ifldpos = ifldpos + 1
+        endif
+        if(ifgettr .and. ifheat) then
+          if(.not.ifgfldr.or.ifgett) then !skip if this is a restart call and the scalar isn't requested
+          if(jeln2.le.nelfld(2)) then
+            if(nid.eq.0 .and. loglevel.gt.2) write(6,*) 'reading temp'
+c           ntot = nx1*ny1*nz1*nelfld(2) 
+            ntot = nx1*ny1*nz1*neln
+            call my_gfldr_getfld(t(1,1,1,1,1),dum,dum,ntot,1
+     $                          ,ifldpos+1,jeln1)
+          endif
+          endif
+          ifldpos = ifldpos + 1
+        endif
+        do i = 1,ldimt-1
+          if(ifgtpsr(i)) then
+            if(.not.ifgfldr.or.ifgtps(i)) then !skip if this is a restart call and the scalar isn't requested
+            if(jeln2.le.nelfld(i+2)) then
+              if(nid.eq.0 .and. loglevel.gt.2) 
+     $          write(6,*) 'reading scalar',i
+c             ntot = nx1*ny1*nz1*nelfld(i+2) 
+              ntot = nx1*ny1*nz1*neln
+              call my_gfldr_getfld(t(1,1,1,1,i+1),dum,dum,ntot,1
+     $                            ,ifldpos+1,jeln1)
+            endif
+            endif
+            ifldpos = ifldpos + 1
+          endif
+        enddo
 
-        kk = kk + mm
-      enddo ! ipass
+      enddo ! batches
 
-  51  format(a,i3,'/',i3,' kk=',i9,' mm=',i9)
+      if(nio.eq.0) write(6,*) 'my_gfldr findpts getfld done'
+      call byte_close_mpi(fldh_gfldr,ierr)
+      etime_t = dnekclock_sync() - etime_t
+      call fgslib_findpts_free(inth_gfldr)
+      if(nio.eq.0) write(6,'(A,1(1g9.2),A)')
+     &                   ' done :: gfldr  ', etime_t, ' sec'
+
       return
       end
 cc-----------------------------------------------------------------------
@@ -260,27 +261,36 @@ c     $ call gfldr_buf2vi(zout,3,bufr,ldim,wdsizr,nels,nxyzs)
 c
 c      return
 c      end
-c-----------------------------------------------------------------------
-      subroutine my_gfldr_getfld_buf(nldim,ifldpos)
+cc-----------------------------------------------------------------------
+      subroutine my_gfldr_getfld(out1,out2,out3,nout,nldim,ifldpos
+     $                          ,jeln1,neln)
 
       include 'SIZE'
       include 'GEOM'
       include 'GFLDR'
       include 'RESTART'
 
+      real out1(*)
+      real out2(*)
+      real out3(*)
+
       integer*8 ioff_b
 
       logical ifpts
+      integer iout0
 
       integer icalld
       save    icalld
       data    icalld /0/
+
 
       ifpts = .false.
       if(icalld.eq.0) then
         ifpts = .true. ! find points
         icalld = 1
       endif
+
+      iout0 = lx1*ly1*lz1 * (jeln1-1) + 1
 
       ! read field data from source fld file
       ioff_b = noff0_b + (ifldpos-1)*nSizeFld_b
@@ -293,40 +303,23 @@ c-----------------------------------------------------------------------
         if(wdsizr.eq.8) call byte_reverse8(bufr,nread,ierr)
       endif
 
-      return
-      end
-
-      subroutine my_gfldr_getfld_intp(out1,out2,out3,e,nout,nldim)
-
-      include 'SIZE'
-      include 'GEOM'
-      include 'GFLDR'
-      include 'RESTART'
-
-      integer e, i
-      real out1(*)
-      real out2(*)
-      real out3(*)
-
-      i = (e-1)*lx1*ly1*lz1 + 1
-
       ! interpolate onto current mesh
       call gfldr_buf2vi  (buffld,1,bufr,nldim,wdsizr,nels,nxyzs)
-      call gfldr_intp    (out1(i),nout,buffld,ifpts)
+      call gfldr_intp    (out1(iout0),nout,buffld,ifpts)
       if(nldim.eq.1) return
 
       call gfldr_buf2vi  (buffld,2,bufr,nldim,wdsizr,nels,nxyzs)
-      call gfldr_intp    (out2(i),nout,buffld,.false.)
+      call gfldr_intp    (out2(iout0),nout,buffld,.false.)
       if(nldim.eq.2) return
 
       if(nldim.eq.3) then
         call gfldr_buf2vi(buffld,3,bufr,nldim,wdsizr,nels,nxyzs)
-        call gfldr_intp  (out3(i),nout,buffld,.false.)
+        call gfldr_intp  (out3(iout0),nout,buffld,.false.)
       endif
 
       return
       end
-c-----------------------------------------------------------------------
+cc-----------------------------------------------------------------------
 c      subroutine gfldr_buf2vi(vi,index,buf,ldim,wds,nel,nxyz)
 c
 c      real    vi(*)
@@ -372,11 +365,12 @@ c      return
 c      end
 cc-----------------------------------------------------------------------
 #else
-      subroutine my_gfldr_b(sourcefld)
+      subroutine my_gfldr_b(sourcefld,bsize)
 
       character sourcefld*(*)
+      integer bsize
 
-      call exitti("MPIIO needed for my_gfldr_b!$",0)
+      call exitti("MPIIO needed for my_gfldr!$",0)
 
       return
       end
